@@ -1,13 +1,15 @@
 extern crate hex;
 extern crate base64;
+extern crate colored;
 
 use std::str;
+use colored::Colorize;
 
 pub fn index() {
-    println!("Challenge 1.1: Convert hex to base64");
+    println!("{}", "Challenge 1.1: Convert hex to base64".blue().bold());
     challenge1();
 
-    println!("Challenge 1.2: Fixed XOR");
+    println!("\n{}", "Challenge 1.2: Fixed XOR".blue().bold());
     challenge2();
 }
 
@@ -38,9 +40,9 @@ fn challenge2() {
 
     let str3 = hex::encode(bytes3.clone());
 
-    println!("String1: {}", str::from_utf8(&bytes1).unwrap());
-    println!("String2: {}", str::from_utf8(&bytes2).unwrap());
-    println!("String3: {}", str::from_utf8(&bytes3).unwrap());
+    println!("String 1: {}", str::from_utf8(&bytes1).unwrap());
+    println!("String 2: {}", str::from_utf8(&bytes2).unwrap());
+    println!("String 3: {}", str::from_utf8(&bytes3).unwrap());
 
     assert_eq!(expected_str3, str3);
 }
