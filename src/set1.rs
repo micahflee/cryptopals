@@ -3,6 +3,7 @@ extern crate base64;
 extern crate colored;
 
 use std::str;
+use std::collections::HashMap;
 use colored::Colorize;
 
 pub fn index() {
@@ -80,6 +81,65 @@ fn xor_bytes(bytes1: Vec<u8>, bytes2: Vec<u8>) -> Vec<u8> {
     bytes3
 }
 
+fn score_plaintext(plaintext: &str) -> f32 {
+    // Evaluate the string for likeliness of being English plaintext, and return
+    // a score. The higher the score, the more likely it's plaintext.
+
+    // For each character, I'm going to add the relative frequency that it appears
+    // in English to the score. If it's a non-printable ASCII character, I subtract
+    // 5, and if if it's printable but not alphabetic, it doesn't change the score.
+
+    // Relative frequency of letters in the English language from:
+    // https://en.wikipedia.org/wiki/Letter_frequency#Relative_frequencies_of_letters_in_the_English_language
+
+    let mut frequency = HashMap::new();
+    frequency.insert('a', 8.167);
+    frequency.insert('b', 1.492);
+    frequency.insert('c', 2.782);
+    frequency.insert('d', 4.253);
+    frequency.insert('e', 12.702);
+    frequency.insert('f', 2.228);
+    frequency.insert('g', 2.015);
+    frequency.insert('h', 6.094);
+    frequency.insert('i', 6.966);
+    frequency.insert('j', 0.153);
+    frequency.insert('k', 0.772);
+    frequency.insert('l', 4.025);
+    frequency.insert('m', 2.406);
+    frequency.insert('n', 6.749);
+    frequency.insert('o', 7.507);
+    frequency.insert('p', 1.929);
+    frequency.insert('q', 0.095);
+    frequency.insert('r', 5.987);
+    frequency.insert('s', 6.327);
+    frequency.insert('t', 9.056);
+    frequency.insert('u', 2.758);
+    frequency.insert('v', 0.978);
+    frequency.insert('w', 2.360);
+    frequency.insert('x', 0.150);
+    frequency.insert('y', 1.974);
+    frequency.insert('z', 0.074);
+
+    let mut score: f32 = 0.0;
+    for c in plaintext.chars() {
+        // If it's alphanumeric, punctuation, or whitespace
+        if c.is_ascii_alphanumeric() || c.is_ascii_punctuation() || c.is_ascii_whitespace() {
+            if c.is_ascii_alphabetic() {
+                let key = c.to_ascii_lowercase();
+                score += match frequency.get(&key) {
+                    None => 0.0,
+                    Some(v) => *v
+                };
+            }
+        }
+        // It doesn't seem to be printable, so punish
+        else {
+            score -= 5.0;
+        }
+    }
+    score
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -98,5 +158,12 @@ mod tests {
             xor_bytes(vec![1, 2, 3], vec![130, 140, 150]),
             vec![131, 142, 149]
         );
+    }
+
+    #[test]
+    fn test_score_plaintext() {
+        let score1 = score_plaintext("the quick brown fox jumped over the crazy dog");
+        let score2 = score_plaintext("إيو. لمّ في مرجع والعتاد اقتصادية. مكن عن اتّجة");
+        assert!(score1 > score2);
     }
 }
