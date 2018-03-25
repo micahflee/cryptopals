@@ -44,9 +44,9 @@ fn challenge2() {
 
     let str3 = hex::encode(bytes3.clone());
 
-    println!("String 1: {}", str::from_utf8(&bytes1).unwrap());
-    println!("String 2: {}", str::from_utf8(&bytes2).unwrap());
-    println!("String 3: {}", str::from_utf8(&bytes3).unwrap());
+    println!("String 1: {:?}", str::from_utf8(&bytes1).unwrap());
+    println!("String 2: {:?}", str::from_utf8(&bytes2).unwrap());
+    println!("String 3: {:?}", str::from_utf8(&bytes3).unwrap());
 
     assert_eq!(expected_str3, str3);
 }
@@ -56,17 +56,35 @@ fn challenge3() {
     let hex_str = "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736";
     let ciphertext_bytes = hex::decode(hex_str).unwrap();
 
-    /*let mut scores = HashMap::new();
+    let mut scores: HashMap<u8, f32> = HashMap::new();
 
     // xor with each character
     for i in 0..255 {
         let key_bytes = vec![i];
         let plaintext_bytes = xor_bytes(ciphertext_bytes.clone(), key_bytes);
-        //scores.insert(i, score);
-        //println!("key {}, plaintext {}", i, str::from_utf8(&plaintext_bytes).unwrap());
-    }*/
+        let score = score_plaintext(plaintext_bytes.clone());
+        scores.insert(i, score);
+    }
 
-    //let string = str::from_utf8(&bytes).unwrap();
+    let mut scores_vec: Vec<_> = scores.iter().collect();
+    scores_vec.sort_by(|a, b| b.1.partial_cmp(a.1).unwrap());
+
+    // Display the top 5 scored plaintext messages
+    let mut count = 0;
+    for val in &scores_vec {
+        let plaintext_bytes = xor_bytes(ciphertext_bytes.clone(), vec![*val.0]);
+        match str::from_utf8(&plaintext_bytes) {
+            Ok(plaintext_string) => {
+                println!("{}: {:?}", val.1, plaintext_string);
+            },
+            Err(_) => {}
+        };
+
+        count += 1;
+        if count == 5 {
+            break;
+        }
+    }
 }
 
 fn hex_to_base64(hex_string: &str) -> Result<String, String> {
@@ -99,7 +117,7 @@ fn score_plaintext(plaintext: Vec<u8>) -> f32 {
 
     // For each character, I'm going to add the relative frequency that it appears
     // in English to the score. If it's a non-printable ASCII character, I subtract
-    // 5, and if if it's printable but not alphabetic, it doesn't change the score.
+    // some and if if it's printable but not alphabetic, it doesn't change the score.
 
     // Relative frequency of letters in the English language from:
     // https://en.wikipedia.org/wiki/Letter_frequency#Relative_frequencies_of_letters_in_the_English_language
@@ -131,6 +149,7 @@ fn score_plaintext(plaintext: Vec<u8>) -> f32 {
     frequency.insert('x', 0.150);
     frequency.insert('y', 1.974);
     frequency.insert('z', 0.074);
+    frequency.insert(' ', 5.000); // spaces get more score too
 
     let mut score: f32 = 0.0;
     for c in &plaintext {
@@ -146,7 +165,7 @@ fn score_plaintext(plaintext: Vec<u8>) -> f32 {
         }
         // It doesn't seem to be printable, so punish
         else {
-            score -= 5.0;
+            score -= 10.0;
         }
     }
     score
