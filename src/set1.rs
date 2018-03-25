@@ -56,7 +56,7 @@ fn challenge3() {
     let hex_str = "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736";
     let ciphertext_bytes = hex::decode(hex_str).unwrap();
 
-    let mut scores = HashMap::new();
+    /*let mut scores = HashMap::new();
 
     // xor with each character
     for i in 0..255 {
@@ -64,7 +64,7 @@ fn challenge3() {
         let plaintext_bytes = xor_bytes(ciphertext_bytes.clone(), key_bytes);
         //scores.insert(i, score);
         //println!("key {}, plaintext {}", i, str::from_utf8(&plaintext_bytes).unwrap());
-    }
+    }*/
 
     //let string = str::from_utf8(&bytes).unwrap();
 }
@@ -135,9 +135,9 @@ fn score_plaintext(plaintext: Vec<u8>) -> f32 {
     let mut score: f32 = 0.0;
     for c in &plaintext {
         // If it's alphanumeric, punctuation, or whitespace
-        if (c as char).is_ascii_alphanumeric() || (c as char).is_ascii_punctuation() || (c as char).is_ascii_whitespace() {
-            if (c as char).is_ascii_alphabetic() {
-                let key = (c as char).to_ascii_lowercase();
+        if (*c as char).is_ascii_alphanumeric() || (*c as char).is_ascii_punctuation() || (*c as char).is_ascii_whitespace() {
+            if (*c as char).is_ascii_alphabetic() {
+                let key = (*c as char).to_ascii_lowercase();
                 score += match frequency.get(&key) {
                     None => 0.0,
                     Some(v) => *v
@@ -178,8 +178,8 @@ mod tests {
 
     #[test]
     fn test_score_plaintext() {
-        let score1 = score_plaintext("the quick brown fox jumped over the crazy dog");
-        let score2 = score_plaintext("إيو. لمّ في مرجع والعتاد اقتصادية. مكن عن اتّجة");
+        let score1 = score_plaintext("the quick brown fox jumped over the crazy dog".as_bytes().to_vec());
+        let score2 = score_plaintext("إيو. لمّ في مرجع والعتاد اقتصادية. مكن عن اتّجة".as_bytes().to_vec());
         assert!(score1 > score2);
     }
 }
