@@ -56,11 +56,14 @@ fn challenge3() {
     let hex_str = "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736";
     let ciphertext_bytes = hex::decode(hex_str).unwrap();
 
+    let mut scores = HashMap::new();
+
     // xor with each character
     for i in 0..255 {
         let key_bytes = vec![i];
         let plaintext_bytes = xor_bytes(ciphertext_bytes.clone(), key_bytes);
-        println!("key {}, plaintext {}", i, str::from_utf8(&plaintext_bytes).unwrap());
+        //scores.insert(i, score);
+        //println!("key {}, plaintext {}", i, str::from_utf8(&plaintext_bytes).unwrap());
     }
 
     //let string = str::from_utf8(&bytes).unwrap();
@@ -90,8 +93,8 @@ fn xor_bytes(bytes1: Vec<u8>, bytes2: Vec<u8>) -> Vec<u8> {
     bytes3
 }
 
-fn score_plaintext(plaintext: &str) -> f32 {
-    // Evaluate the string for likeliness of being English plaintext, and return
+fn score_plaintext(plaintext: Vec<u8>) -> f32 {
+    // Evaluate the bytes for likeliness of being English plaintext, and return
     // a score. The higher the score, the more likely it's plaintext.
 
     // For each character, I'm going to add the relative frequency that it appears
@@ -130,11 +133,11 @@ fn score_plaintext(plaintext: &str) -> f32 {
     frequency.insert('z', 0.074);
 
     let mut score: f32 = 0.0;
-    for c in plaintext.chars() {
+    for c in &plaintext {
         // If it's alphanumeric, punctuation, or whitespace
-        if c.is_ascii_alphanumeric() || c.is_ascii_punctuation() || c.is_ascii_whitespace() {
-            if c.is_ascii_alphabetic() {
-                let key = c.to_ascii_lowercase();
+        if (c as char).is_ascii_alphanumeric() || (c as char).is_ascii_punctuation() || (c as char).is_ascii_whitespace() {
+            if (c as char).is_ascii_alphabetic() {
+                let key = (c as char).to_ascii_lowercase();
                 score += match frequency.get(&key) {
                     None => 0.0,
                     Some(v) => *v
