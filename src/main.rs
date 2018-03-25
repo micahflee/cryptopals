@@ -1,6 +1,8 @@
 #[macro_use(value_t)]
 extern crate clap;
 
+mod set1;
+
 use clap::{Arg, App};
 
 fn main() {
@@ -35,5 +37,10 @@ fn main() {
         }
     };
 
-    println!("Cryptopals, Challenge {}.{}", set, challenge);
+    // Challenge set 1
+    if set == 1 {
+        set1::index(challenge);
+    } else {
+        println!("Sorry, I haven't implemented any challenges from that set");
+    }
 }
