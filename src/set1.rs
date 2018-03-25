@@ -11,6 +11,9 @@ pub fn index() {
 
     println!("\n{}", "Challenge 1.2: Fixed XOR".blue().bold());
     challenge2();
+
+    println!("\n{}", "Challenge 1.3: Single-byte XOR cipher".blue().bold());
+    challenge3();
 }
 
 fn challenge1() {
@@ -36,7 +39,7 @@ fn challenge2() {
 
     let bytes1 = hex::decode(str1).unwrap();
     let bytes2 = hex::decode(str2).unwrap();
-    let bytes3 = xor_bytes(bytes1.clone(), bytes2.clone()).unwrap();
+    let bytes3 = xor_bytes(bytes1.clone(), bytes2.clone());
 
     let str3 = hex::encode(bytes3.clone());
 
@@ -47,6 +50,12 @@ fn challenge2() {
     assert_eq!(expected_str3, str3);
 }
 
+fn challenge3() {
+    // https://cryptopals.com/sets/1/challenges/3
+    //let str1 = "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736";
+    //let bytes1 = hex::decode(str1).unwrap();
+}
+
 fn hex_to_base64(hex_string: &str) -> Result<String, String> {
     // Convert hex to Vec<u8>, an array of bytes
     let bin = match hex::decode(hex_string) {
@@ -54,27 +63,21 @@ fn hex_to_base64(hex_string: &str) -> Result<String, String> {
         Err(_) => { return Err(String::from("Error converting hex to bytes")); }
     };
 
-    // Uncomment to print the hex
-    //println!("Decoded hex: {}", str::from_utf8(&bin).unwrap());
-
     // Convert bin to base64
     let base64_string = base64::encode(&bin);
 
     Ok(base64_string)
 }
 
-fn xor_bytes(bytes1: Vec<u8>, bytes2: Vec<u8>) -> Result<Vec<u8>, String> {
-    // bytes1 and bytes2 must be the same length
-    if bytes1.len() != bytes2.len() {
-        return Err(String::from("bytes1 and bytes2 must have the same length"))
-    }
+fn xor_bytes(bytes1: Vec<u8>, bytes2: Vec<u8>) -> Vec<u8> {
+    // The returned vector will have the length of bytes1
 
     // bytes3 = bytes1 xor bytes2
     let mut bytes3 = vec![];
     for i in 0..bytes1.len() {
-        bytes3.push(bytes1[i] ^ bytes2[i])
+        bytes3.push(bytes1[i] ^ bytes2[i % bytes1.len()])
     }
-    Ok(bytes3)
+    bytes3
 }
 
 #[cfg(test)]
@@ -93,7 +96,7 @@ mod tests {
     fn test_xor_bytes() {
         assert_eq!(
             xor_bytes(vec![1, 2, 3], vec![130, 140, 150]),
-            Ok(vec![131, 142, 149])
+            vec![131, 142, 149]
         );
     }
 }
