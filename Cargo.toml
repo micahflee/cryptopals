@@ -4,3 +4,4 @@ version = "0.1.0"
 authors = ["Micah Lee <micah@micahflee.com>"]
 
 [dependencies]
+clap = "2.31.2"
