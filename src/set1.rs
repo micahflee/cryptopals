@@ -53,8 +53,17 @@ fn challenge2() {
 
 fn challenge3() {
     // https://cryptopals.com/sets/1/challenges/3
-    //let str1 = "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736";
-    //let bytes1 = hex::decode(str1).unwrap();
+    let hex_str = "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736";
+    let ciphertext_bytes = hex::decode(hex_str).unwrap();
+
+    // xor with each character
+    for i in 0..255 {
+        let key_bytes = vec![i];
+        let plaintext_bytes = xor_bytes(ciphertext_bytes.clone(), key_bytes);
+        println!("key {}, plaintext {}", i, str::from_utf8(&plaintext_bytes).unwrap());
+    }
+
+    //let string = str::from_utf8(&bytes).unwrap();
 }
 
 fn hex_to_base64(hex_string: &str) -> Result<String, String> {
@@ -76,7 +85,7 @@ fn xor_bytes(bytes1: Vec<u8>, bytes2: Vec<u8>) -> Vec<u8> {
     // bytes3 = bytes1 xor bytes2
     let mut bytes3 = vec![];
     for i in 0..bytes1.len() {
-        bytes3.push(bytes1[i] ^ bytes2[i % bytes1.len()])
+        bytes3.push(bytes1[i] ^ bytes2[i % bytes2.len()])
     }
     bytes3
 }
@@ -157,6 +166,10 @@ mod tests {
         assert_eq!(
             xor_bytes(vec![1, 2, 3], vec![130, 140, 150]),
             vec![131, 142, 149]
+        );
+        assert_eq!(
+            xor_bytes(vec![1, 2, 3, 4, 5], vec![128]),
+            vec![129, 130, 131, 132, 133]
         );
     }
 
