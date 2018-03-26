@@ -4,6 +4,10 @@ extern crate colored;
 
 use std::str;
 use std::collections::HashMap;
+use std::error::Error;
+use std::fs::File;
+use std::io::prelude::*;
+use std::path::Path;
 use colored::Colorize;
 
 pub fn index() {
@@ -15,6 +19,9 @@ pub fn index() {
 
     println!("\n{}", "Challenge 1.3: Single-byte XOR cipher".blue().bold());
     challenge3();
+
+    println!("\n{}", "Detect single-character XOR".blue().bold());
+    challenge4();
 }
 
 fn challenge1() {
@@ -85,6 +92,29 @@ fn challenge3() {
             break;
         }
     }
+}
+
+fn challenge4() {
+    // https://cryptopals.com/sets/1/challenges/4
+
+    // Load the hex strings from disk
+    let path = Path::new("data/set1/4.txt");
+    let display = path.display();
+    let mut file = match File::open(&path) {
+        Err(why) => panic!("couldn't open {}: {}", display, why.description()),
+        Ok(file) => file,
+    };
+    let mut hex_strings = String::new();
+    match file.read_to_string(&mut hex_strings) {
+        Err(why) => panic!("couldn't read {}: {}", display, why.description()),
+        Ok(_) => {},
+    }
+
+    // Loop through hex strings
+    for hex_string in hex_strings.split_whitespace() {
+        println!("hex: {}", hex_string);
+    }
+
 }
 
 fn hex_to_base64(hex_string: &str) -> Result<String, String> {
@@ -173,6 +203,28 @@ fn score_plaintext(plaintext: Vec<u8>) -> f32 {
     score
 }
 
+fn brute_force_1char_xor(ciphertext: Vec<u8>) -> (u8, Vec<u8>) {
+    // Takes ciphertext as a byte array, returns a tuple of (key, plaintext)
+    // It assumes the best scored plaintext is correct
+
+    let mut scores: HashMap<u8, (f32, Vec<u8>)> = HashMap::new();
+
+    // xor with each character
+    for i in 0..255 {
+        let key = vec![i];
+        let plaintext = xor_bytes(ciphertext.clone(), key);
+        let score = score_plaintext(plaintext.clone());
+        scores.insert(i, (score, plaintext));
+    }
+
+    let mut scores_vec: Vec<_> = scores.iter().collect();
+    scores_vec.sort_by(|a, b| b.1.partial_cmp(a.1).unwrap());
+
+    let key = *scores_vec[0].0;
+    let plaintext: Vec<u8> = (*(scores_vec[0].1).1).to_vec();
+    (key, plaintext)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -202,5 +254,13 @@ mod tests {
         let score1 = score_plaintext("the quick brown fox jumped over the crazy dog".as_bytes().to_vec());
         let score2 = score_plaintext("إيو. لمّ في مرجع والعتاد اقتصادية. مكن عن اتّجة".as_bytes().to_vec());
         assert!(score1 > score2);
+    }
+
+    #[test]
+    fn test_brute_force_1char_xor() {
+        let ciphertext = hex::decode("1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736").unwrap();
+        let result = brute_force_1char_xor(ciphertext);
+        assert_eq!(result.0, 88);
+        assert_eq!(result.1, "Cooking MC\'s like a pound of bacon".as_bytes().to_vec());
     }
 }
