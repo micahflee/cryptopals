@@ -1,6 +1,7 @@
 #[macro_use(value_t)]
 extern crate clap;
 extern crate colored;
+extern crate hamming;
 
 mod set1;
 

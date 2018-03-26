@@ -1,6 +1,7 @@
 extern crate hex;
 extern crate base64;
 extern crate colored;
+extern crate hamming;
 
 use std::str;
 use std::collections::HashMap;
@@ -25,6 +26,9 @@ pub fn index() {
 
     println!("\n{}", "Implement repeating-key XOR".blue().bold());
     challenge5();
+
+    println!("\n{}", "Break repeating-key XOR".blue().bold());
+    challenge6();
 }
 
 fn challenge1() {
@@ -144,6 +148,10 @@ fn challenge5() {
     println!("{}", ciphertext_hex);
 }
 
+fn challenge6() {
+    // https://cryptopals.com/sets/1/challenges/6
+}
+
 fn hex_to_base64(hex_string: &str) -> Result<String, String> {
     // Convert hex to Vec<u8>, an array of bytes
     let bin = match hex::decode(hex_string) {
@@ -253,6 +261,7 @@ fn brute_force_1char_xor(ciphertext: Vec<u8>) -> (u8, f32, Vec<u8>) {
     (key, score, plaintext)
 }
 
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -290,5 +299,14 @@ mod tests {
         let result = brute_force_1char_xor(ciphertext);
         assert_eq!(result.0, 88);
         assert_eq!(result.2, "Cooking MC\'s like a pound of bacon".as_bytes().to_vec());
+    }
+
+    #[test]
+    fn test_hamming_distance() {
+        let d = hamming::distance(
+            "this is a test".as_bytes(),
+            "wokka wokka!!!".as_bytes()
+        );
+        assert_eq!(d, 37);
     }
 }
