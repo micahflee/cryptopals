@@ -104,18 +104,8 @@ fn challenge3() {
 fn challenge4() {
     // https://cryptopals.com/sets/1/challenges/4
 
-    // Load the hex strings from disk
-    let path = Path::new("data/set1/4.txt");
-    let display = path.display();
-    let mut file = match File::open(&path) {
-        Err(why) => panic!("couldn't open {}: {}", display, why.description()),
-        Ok(file) => file,
-    };
-    let mut hex_strings = String::new();
-    match file.read_to_string(&mut hex_strings) {
-        Err(why) => panic!("couldn't read {}: {}", display, why.description()),
-        Ok(_) => {},
-    }
+    // Load data
+    let hex_strings = get_file_contents("data/set1/4.txt").unwrap();
 
     // Loop through hex strings
     for hex_string in hex_strings.split_whitespace() {
@@ -261,6 +251,21 @@ fn brute_force_1char_xor(ciphertext: Vec<u8>) -> (u8, f32, Vec<u8>) {
     (key, score, plaintext)
 }
 
+fn get_file_contents(filename: &str) -> Result<String, String> {
+    let path = Path::new(filename);
+    let display = path.display();
+    let mut file = match File::open(&path) {
+        Err(why) => return Err(format!("couldn't open {}: {}", display, why.description())),
+        Ok(file) => file,
+    };
+
+    let mut s = String::new();
+    match file.read_to_string(&mut s) {
+        Err(why) => return Err(format!("couldn't read {}: {}", display, why.description())),
+        Ok(_) => {},
+    }
+    Ok(s)
+}
 
 #[cfg(test)]
 mod tests {
