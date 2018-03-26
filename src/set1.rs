@@ -149,7 +149,6 @@ fn score_plaintext(plaintext: Vec<u8>) -> f32 {
     frequency.insert('x', 0.150);
     frequency.insert('y', 1.974);
     frequency.insert('z', 0.074);
-    frequency.insert(' ', 5.000); // spaces get more score too
 
     let mut score: f32 = 0.0;
     for c in &plaintext {
@@ -161,6 +160,9 @@ fn score_plaintext(plaintext: Vec<u8>) -> f32 {
                     None => 0.0,
                     Some(v) => *v
                 };
+            }
+            if (*c as char) == ' ' {
+                score += 5.0;
             }
         }
         // It doesn't seem to be printable, so punish
