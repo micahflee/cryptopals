@@ -116,12 +116,15 @@ fn challenge4() {
 
         let result = brute_force_1char_xor(ciphertext);
         let key = result.0;
-        let plaintext = result.1;
+        let score = result.1;
+        let plaintext = result.2;
 
-        match str::from_utf8(&plaintext) {
-            Ok(s) => println!("Key={}, Plaintext={:?}", key, s),
-            Err(_) => println!("Error decoding as text")
-        };
+        if score > 130 as f32 {
+            match str::from_utf8(&plaintext) {
+                Ok(s) => println!("Key={}, Score={}, Plaintext={:?}", key, score, s),
+                Err(_) => println!("Error decoding as text")
+            };
+        }
     }
 
 }
@@ -212,8 +215,8 @@ fn score_plaintext(plaintext: Vec<u8>) -> f32 {
     score
 }
 
-fn brute_force_1char_xor(ciphertext: Vec<u8>) -> (u8, Vec<u8>) {
-    // Takes ciphertext as a byte array, returns a tuple of (key, plaintext)
+fn brute_force_1char_xor(ciphertext: Vec<u8>) -> (u8, f32, Vec<u8>) {
+    // Takes ciphertext as a byte array, returns a tuple of (key, score, plaintext)
     // It assumes the best scored plaintext is correct
 
     let mut scores: HashMap<u8, (f32, Vec<u8>)> = HashMap::new();
@@ -230,8 +233,9 @@ fn brute_force_1char_xor(ciphertext: Vec<u8>) -> (u8, Vec<u8>) {
     scores_vec.sort_by(|a, b| b.1.partial_cmp(a.1).unwrap());
 
     let key = *scores_vec[0].0;
+    let score = (scores_vec[0].1).0;
     let plaintext: Vec<u8> = (*(scores_vec[0].1).1).to_vec();
-    (key, plaintext)
+    (key, score, plaintext)
 }
 
 #[cfg(test)]
@@ -270,6 +274,6 @@ mod tests {
         let ciphertext = hex::decode("1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736").unwrap();
         let result = brute_force_1char_xor(ciphertext);
         assert_eq!(result.0, 88);
-        assert_eq!(result.1, "Cooking MC\'s like a pound of bacon".as_bytes().to_vec());
+        assert_eq!(result.2, "Cooking MC\'s like a pound of bacon".as_bytes().to_vec());
     }
 }
