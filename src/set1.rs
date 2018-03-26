@@ -112,7 +112,16 @@ fn challenge4() {
 
     // Loop through hex strings
     for hex_string in hex_strings.split_whitespace() {
-        println!("hex: {}", hex_string);
+        let ciphertext = hex::decode(hex_string).unwrap();
+
+        let result = brute_force_1char_xor(ciphertext);
+        let key = result.0;
+        let plaintext = result.1;
+
+        match str::from_utf8(&plaintext) {
+            Ok(s) => println!("Key={}, Plaintext={:?}", key, s),
+            Err(_) => println!("Error decoding as text")
+        };
     }
 
 }
