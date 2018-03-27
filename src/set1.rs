@@ -210,19 +210,7 @@ fn challenge6() {
     println!("== Assuming key length is {}, with shortest hamming distance {} ==", best_keysize, best_dist);
 
     // Break ciphertext into keysize blocks
-    let mut blocks = vec![];
-    let mut i = 0;
-    loop {
-        if data_bytes.len() >= best_keysize * (i + 1) {
-            let block = &data_bytes[(best_keysize * i)..(best_keysize * (i + 1))];
-            blocks.push(block);
-            i += 1;
-        } else {
-            let block = &data_bytes[(best_keysize * i)..data_bytes.len()];
-            blocks.push(block);
-            break;
-        }
-    }
+    let blocks = bytes_into_blocks(data_bytes.clone(), best_keysize);
     println!("Split ciphertext into {} {}-byte blocks", blocks.len(), best_keysize);
 
     // Build transposed blocks, one with all the 1st bytes of the block, one with the 2nd bytes, etc.
