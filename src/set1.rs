@@ -11,6 +11,8 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
 use colored::Colorize;
+use crypto::{blockmodes, buffer, aes};
+use crypto::buffer::{ ReadBuffer, WriteBuffer, BufferResult };
 
 pub fn index(challenge: u32) {
     if challenge == 0 || challenge == 1 {
@@ -46,6 +48,12 @@ pub fn index(challenge: u32) {
     if challenge == 0 || challenge == 6 {
         println!("{}", "Break repeating-key XOR".blue().bold());
         challenge6();
+        println!("");
+    }
+
+    if challenge == 0 || challenge == 7 {
+        println!("{}", "AES in ECB mode".blue().bold());
+        challenge7();
         println!("");
     }
 }
@@ -236,6 +244,41 @@ fn challenge6() {
     let plaintext = xor_bytes(data_bytes.clone(), key);
     println!("\nPlaintext:\n\n{}", str::from_utf8(&plaintext).unwrap());
 }
+
+fn challenge7() {
+    // https://cryptopals.com/sets/1/challenges/7
+
+    // Load and decode data
+    let ciphertext_base64 = get_file_contents("data/set1/7.txt").unwrap().replace("\n", "");
+    let ciphertext = base64::decode(&ciphertext_base64).unwrap();
+
+    // AES decryption based on sample code from (but with different mode, etc.):
+    // https://github.com/DaGenix/rust-crypto/blob/master/examples/symmetriccipher.rs
+
+    let key = "YELLOW SUBMARINE".as_bytes();
+    let mut decryptor = aes::ecb_decryptor(aes::KeySize::KeySize128, key, blockmodes::NoPadding);
+
+    let mut plaintext = Vec::<u8>::new();
+    let mut read_buffer = buffer::RefReadBuffer::new(ciphertext.as_slice());
+    let mut buffer = [0; 4096];
+    let mut write_buffer = buffer::RefWriteBuffer::new(&mut buffer);
+
+    loop {
+        let result = match decryptor.decrypt(&mut read_buffer, &mut write_buffer, true) {
+            Ok(v) => v,
+            Err(_) => panic!("Error decrypting AES-128-ECB")
+        };
+        plaintext.extend(write_buffer.take_read_buffer().take_remaining().iter().map(|&i| i));
+        match result {
+            BufferResult::BufferUnderflow => break,
+            BufferResult::BufferOverflow => { }
+        }
+    }
+
+    // Should be decrypted
+    println!("Plaintext:\n\n{}", str::from_utf8(&plaintext).unwrap());
+}
+
 
 fn hex_to_base64(hex_string: &str) -> Result<String, String> {
     // Convert hex to Vec<u8>, an array of bytes
