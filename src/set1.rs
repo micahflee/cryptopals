@@ -151,7 +151,16 @@ fn challenge6() {
     for keysize in 2..40 {
         let chunk1 = &data_bytes[0..keysize];
         let chunk2 = &data_bytes[keysize..2*keysize];
-        let dist = hamming::distance(&chunk1, &chunk2) as f32 / keysize as f32;
+        let chunk3 = &data_bytes[2*keysize..3*keysize];
+        let chunk4 = &data_bytes[3*keysize..4*keysize];
+        // Average a bunch of hamming distances
+        let dist1 = hamming::distance(&chunk1, &chunk2) as f32 / keysize as f32;
+        let dist2 = hamming::distance(&chunk1, &chunk3) as f32 / keysize as f32;
+        let dist3 = hamming::distance(&chunk1, &chunk4) as f32 / keysize as f32;
+        let dist4 = hamming::distance(&chunk2, &chunk3) as f32 / keysize as f32;
+        let dist5 = hamming::distance(&chunk2, &chunk4) as f32 / keysize as f32;
+        let dist6 = hamming::distance(&chunk3, &chunk4) as f32 / keysize as f32;
+        let dist = (dist1 + dist2 + dist3 + dist4 + dist5 + dist6) / 6 as f32;
         keysizes.insert(keysize, dist);
     }
 
@@ -206,7 +215,7 @@ fn challenge6() {
 
     // Decrypt?!
     let plaintext = xor_bytes(data_bytes.clone(), key);
-    println!("Plaintext: {:?}", str::from_utf8(&plaintext).unwrap());
+    println!("\nPlaintext:\n\n{}", str::from_utf8(&plaintext).unwrap());
 }
 
 fn hex_to_base64(hex_string: &str) -> Result<String, String> {
