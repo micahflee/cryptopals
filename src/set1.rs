@@ -12,24 +12,42 @@ use std::io::prelude::*;
 use std::path::Path;
 use colored::Colorize;
 
-pub fn index() {
-    println!("{}", "Challenge 1.1: Convert hex to base64".blue().bold());
-    challenge1();
+pub fn index(challenge: u32) {
+    if challenge == 0 || challenge == 1 {
+        println!("{}", "Challenge 1.1: Convert hex to base64".blue().bold());
+        challenge1();
+        println!("");
+    }
 
-    println!("\n{}", "Challenge 1.2: Fixed XOR".blue().bold());
-    challenge2();
+    if challenge == 0 || challenge == 2 {
+        println!("{}", "Challenge 1.2: Fixed XOR".blue().bold());
+        challenge2();
+        println!("");
+    }
 
-    println!("\n{}", "Challenge 1.3: Single-byte XOR cipher".blue().bold());
-    challenge3();
+    if challenge == 0 || challenge == 3 {
+        println!("{}", "Challenge 1.3: Single-byte XOR cipher".blue().bold());
+        challenge3();
+        println!("");
+    }
 
-    println!("\n{}", "Detect single-character XOR".blue().bold());
-    challenge4();
+    if challenge == 0 || challenge == 4 {
+        println!("{}", "Detect single-character XOR".blue().bold());
+        challenge4();
+        println!("");
+    }
 
-    println!("\n{}", "Implement repeating-key XOR".blue().bold());
-    challenge5();
+    if challenge == 0 || challenge == 5 {
+        println!("{}", "Implement repeating-key XOR".blue().bold());
+        challenge5();
+        println!("");
+    }
 
-    println!("\n{}", "Break repeating-key XOR".blue().bold());
-    challenge6();
+    if challenge == 0 || challenge == 6 {
+        println!("{}", "Break repeating-key XOR".blue().bold());
+        challenge6();
+        println!("");
+    }
 }
 
 fn challenge1() {

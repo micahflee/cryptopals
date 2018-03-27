@@ -12,14 +12,17 @@ fn main() {
     // Parse command line args
     let matches = App::new("Cryptopals")
         .about("Solutions to https://cryptopals.com/ challenges")
-        .arg(Arg::with_name("CHALLENGE_SET")
-            .help("Challenge set to run (int)")
+        .arg(Arg::with_name("SET")
+            .help("Challenge set")
             .required(true)
             .index(1))
+        .arg(Arg::with_name("CHALLENGE")
+            .help("Challenge number (blank to run all)")
+            .index(2))
         .get_matches();
 
     // Validate set as integer
-    let set = match value_t!(matches, "CHALLENGE_SET", u32) {
+    let set = match value_t!(matches, "SET", u32) {
         Ok(v) => v,
         Err(_) => {
             println!("CHALLENGE_SET must be an integer");
@@ -27,9 +30,19 @@ fn main() {
         }
     };
 
+    let challenge = match matches.value_of("CHALLENGE") {
+        Some(_) => {
+            match value_t!(matches, "CHALLENGE", u32) {
+                Ok(v) => v,
+                Err(_) => { 0 }
+            }
+        },
+        None => { 0 }
+    };
+
     // Challenge set 1
     if set == 1 {
-        set1::index();
+        set1::index(challenge);
     } else {
         println!("Sorry, I haven't implemented that challenge set");
     }
