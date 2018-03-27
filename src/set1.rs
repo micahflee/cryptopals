@@ -56,6 +56,12 @@ pub fn index(challenge: u32) {
         challenge7();
         println!("");
     }
+
+    if challenge == 0 || challenge == 8 {
+        println!("{}", "Detect AES in ECB mode".blue().bold());
+        challenge8();
+        println!("");
+    }
 }
 
 fn challenge1() {
@@ -279,6 +285,13 @@ fn challenge7() {
     println!("Plaintext:\n\n{}", str::from_utf8(&plaintext).unwrap());
 }
 
+fn challenge8() {
+    // https://cryptopals.com/sets/1/challenges/8
+
+    // Load and decode data
+    let ciphertext_base64 = get_file_contents("data/set1/7.txt").unwrap().replace("\n", "");
+    let ciphertext = base64::decode(&ciphertext_base64).unwrap();
+}
 
 fn hex_to_base64(hex_string: &str) -> Result<String, String> {
     // Convert hex to Vec<u8>, an array of bytes
@@ -405,6 +418,27 @@ fn get_file_contents(filename: &str) -> Result<String, String> {
     Ok(s)
 }
 
+fn bytes_into_blocks(bytes: Vec<u8>, blocksize: usize) -> Vec<Vec<u8>> {
+    // Split bytes into blocks of length blocksize, and return a vec of blocks
+    // Break ciphertext into keysize blocks
+    let mut blocks = vec![];
+    let mut i = 0;
+    loop {
+        if bytes.len() >= blocksize * (i + 1) {
+            let block = &bytes[(blocksize * i)..(blocksize * (i + 1))];
+            blocks.push(block.to_vec());
+            i += 1;
+        } else {
+            let block = &bytes[(blocksize * i)..bytes.len()];
+            if block.len() > 0 {
+                blocks.push(block.to_vec());
+            }
+            break;
+        }
+    }
+    blocks
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -451,5 +485,20 @@ mod tests {
             "wokka wokka!!!".as_bytes()
         );
         assert_eq!(d, 37);
+    }
+
+    #[test]
+    fn test_bytes_into_blocks() {
+        let bytes = "AAAABBBBCCCCDD".as_bytes().to_vec();
+        let blocks = bytes_into_blocks(bytes, 4);
+        assert_eq!(
+            blocks,
+            vec![
+                "AAAA".as_bytes().to_vec(),
+                "BBBB".as_bytes().to_vec(),
+                "CCCC".as_bytes().to_vec(),
+                "DD".as_bytes().to_vec()
+            ]
+        );
     }
 }
