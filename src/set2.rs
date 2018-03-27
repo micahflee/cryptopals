@@ -1,8 +1,11 @@
 extern crate base64;
 
+use std::str;
 use colored::Colorize;
 use crypto::{blockmodes, buffer, aes};
 use crypto::buffer::{ ReadBuffer, WriteBuffer, BufferResult };
+
+use set1::{get_file_contents, xor_bytes, bytes_into_blocks};
 
 pub fn index(challenge: u32) {
     if challenge == 9 {
@@ -28,6 +31,37 @@ fn challenge9() {
 fn challenge10() {
     // https://cryptopals.com/sets/2/challenges/10
     println!("\n{}", "Implement CBC mode".blue().bold());
+
+    let iv = vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    let key = "YELLOW SUBMARINE".as_bytes().to_vec();
+
+    let ciphertext_base64 = get_file_contents("data/set2/10.txt").unwrap().replace("\n", "");
+    let ciphertext = base64::decode(&ciphertext_base64).unwrap();
+
+    let blocks = bytes_into_blocks(ciphertext, 16);
+
+    let mut plaintext = vec![];
+
+    // The previous block starts out as the IV
+    let mut prev_block = iv.clone();
+    for block in blocks {
+        // XOR the block with the previous block, and create a new previous block
+        let entangled_block = xor_bytes(block, prev_block.clone());
+        prev_block = entangled_block.clone();
+
+        // Decrypt the block and append it to plaintext
+        let mut plaintext_block = aes128_ecb_decrypt(entangled_block, key.clone());
+
+        // Display the block
+        match str::from_utf8(&plaintext_block) {
+            Ok(v) => println!("Block decrypted: {:?}", v),
+            Err(_) => println!("Block decrypted: (invalid utf8, can't display)")
+        }
+        plaintext.append(&mut plaintext_block);
+    }
+
+    // Did we decrypt?
+    //println!("Plaintext:\n\n{}", str::from_utf8(&plaintext));
 }
 
 fn pkcs7_padding(data: &mut Vec<u8>, blocksize: usize) {
