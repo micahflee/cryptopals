@@ -15,57 +15,39 @@ use crypto::{blockmodes, buffer, aes};
 use crypto::buffer::{ ReadBuffer, WriteBuffer, BufferResult };
 
 pub fn index(challenge: u32) {
-    if challenge == 0 || challenge == 1 {
-        println!("{}", "Challenge 1.1: Convert hex to base64".blue().bold());
+    if challenge == 1 {
         challenge1();
-        println!("");
-    }
-
-    if challenge == 0 || challenge == 2 {
-        println!("{}", "Challenge 1.2: Fixed XOR".blue().bold());
+    } else if challenge == 2 {
         challenge2();
-        println!("");
-    }
-
-    if challenge == 0 || challenge == 3 {
-        println!("{}", "Challenge 1.3: Single-byte XOR cipher".blue().bold());
+    } else if challenge == 3 {
         challenge3();
-        println!("");
-    }
-
-    if challenge == 0 || challenge == 4 {
-        println!("{}", "Detect single-character XOR".blue().bold());
+    } else if challenge == 4 {
         challenge4();
-        println!("");
-    }
-
-    if challenge == 0 || challenge == 5 {
-        println!("{}", "Implement repeating-key XOR".blue().bold());
+    } else if challenge == 5 {
         challenge5();
-        println!("");
-    }
-
-    if challenge == 0 || challenge == 6 {
-        println!("{}", "Break repeating-key XOR".blue().bold());
+    } else if challenge == 6 {
         challenge6();
-        println!("");
-    }
-
-    if challenge == 0 || challenge == 7 {
-        println!("{}", "AES in ECB mode".blue().bold());
+    } else if challenge == 7 {
         challenge7();
-        println!("");
-    }
-
-    if challenge == 0 || challenge == 8 {
-        println!("{}", "Detect AES in ECB mode".blue().bold());
+    } else if challenge == 8 {
         challenge8();
-        println!("");
+    } else {
+        // Run all challanges
+        challenge1();
+        challenge2();
+        challenge3();
+        challenge4();
+        challenge5();
+        challenge6();
+        challenge7();
+        challenge8();
     }
 }
 
 fn challenge1() {
     // https://cryptopals.com/sets/1/challenges/1
+    println!("\n{}", "Challenge 1.1: Convert hex to base64".blue().bold());
+
     let hex_string = "49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d";
     let expected_base64_string = "SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb29t";
 
@@ -81,6 +63,8 @@ fn challenge1() {
 
 fn challenge2() {
     // https://cryptopals.com/sets/1/challenges/2
+    println!("\n{}", "Challenge 1.2: Fixed XOR".blue().bold());
+
     let str1 = "1c0111001f010100061a024b53535009181c";
     let str2 = "686974207468652062756c6c277320657965";
     let expected_str3 = "746865206b696420646f6e277420706c6179";
@@ -100,6 +84,8 @@ fn challenge2() {
 
 fn challenge3() {
     // https://cryptopals.com/sets/1/challenges/3
+    println!("\n{}", "Challenge 1.3: Single-byte XOR cipher".blue().bold());
+
     let hex_str = "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736";
     let ciphertext_bytes = hex::decode(hex_str).unwrap();
 
@@ -136,6 +122,7 @@ fn challenge3() {
 
 fn challenge4() {
     // https://cryptopals.com/sets/1/challenges/4
+    println!("\n{}", "Detect single-character XOR".blue().bold());
 
     // Load data
     let hex_strings = get_file_contents("data/set1/4.txt").unwrap();
@@ -160,6 +147,8 @@ fn challenge4() {
 
 fn challenge5() {
     // https://cryptopals.com/sets/1/challenges/5
+    println!("\n{}", "Implement repeating-key XOR".blue().bold());
+
     let plaintext = "Burning 'em, if you ain't quick and nimble\nI go crazy when I hear a cymbal".as_bytes().to_vec();
     let key = "ICE".as_bytes().to_vec();
     let ciphertext = xor_bytes(plaintext, key);
@@ -173,6 +162,7 @@ fn challenge5() {
 
 fn challenge6() {
     // https://cryptopals.com/sets/1/challenges/6
+    println!("\n{}", "Break repeating-key XOR".blue().bold());
 
     // Load and decode data (strip newlines from it, too)
     let data_base64 = get_file_contents("data/set1/6.txt").unwrap().replace("\n", "");
@@ -241,6 +231,7 @@ fn challenge6() {
 
 fn challenge7() {
     // https://cryptopals.com/sets/1/challenges/7
+    println!("\n{}", "AES in ECB mode".blue().bold());
 
     // Load and decode data
     let ciphertext_base64 = get_file_contents("data/set1/7.txt").unwrap().replace("\n", "");
@@ -275,6 +266,8 @@ fn challenge7() {
 
 fn challenge8() {
     // https://cryptopals.com/sets/1/challenges/8
+    println!("\n{}", "Detect AES in ECB mode".blue().bold());
+
     let hex_strings = get_file_contents("data/set1/8.txt").unwrap();
 
     // Loop through hex strings
