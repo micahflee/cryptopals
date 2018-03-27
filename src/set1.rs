@@ -140,6 +140,73 @@ fn challenge5() {
 
 fn challenge6() {
     // https://cryptopals.com/sets/1/challenges/6
+
+    // Load and decode data (strip newlines from it, too)
+    let data_base64 = get_file_contents("data/set1/6.txt").unwrap().replace("\n", "");
+    let data_bytes = base64::decode(&data_base64).unwrap();
+
+    // Guess the keysize
+    // keysizes maps key size to hamming distance
+    let mut keysizes: HashMap<usize, f32> = HashMap::new();
+    for keysize in 2..40 {
+        let chunk1 = &data_bytes[0..keysize];
+        let chunk2 = &data_bytes[keysize..2*keysize];
+        let dist = hamming::distance(&chunk1, &chunk2) as f32 / keysize as f32;
+        keysizes.insert(keysize, dist);
+    }
+
+    // Find the shortest hamming distance
+    let mut best_keysize = 0;
+    let mut best_dist = 100 as f32;
+    for (keysize, dist) in keysizes {
+        //println!("Keysize {} has dist {}", keysize, dist);
+        if dist < best_dist {
+            best_keysize = keysize;
+            best_dist = dist;
+        }
+    }
+    println!("== Assuming key length is {}, with shortest hamming distance {} ==", best_keysize, best_dist);
+
+    // Break ciphertext into keysize blocks
+    let mut blocks = vec![];
+    let mut i = 0;
+    loop {
+        if data_bytes.len() >= best_keysize * (i + 1) {
+            let block = &data_bytes[(best_keysize * i)..(best_keysize * (i + 1))];
+            blocks.push(block);
+            i += 1;
+        } else {
+            let block = &data_bytes[(best_keysize * i)..data_bytes.len()];
+            blocks.push(block);
+            break;
+        }
+    }
+    println!("Split ciphertext into {} {}-byte blocks", blocks.len(), best_keysize);
+
+    // Build transposed blocks, one with all the 1st bytes of the block, one with the 2nd bytes, etc.
+    let mut transposed_blocks = vec![];
+    for i in 0..best_keysize {
+        let mut transposed_block = vec![];
+        for block in &blocks {
+            // The last block might be shorter than best_keysize
+            if i < block.len() {
+                transposed_block.push(block[i]);
+            }
+        }
+        transposed_blocks.push(transposed_block);
+    }
+
+    // For each transposed block, guess the XOR key
+    let mut key = vec![];
+    for transposed_block in &transposed_blocks {
+        let result = brute_force_1char_xor(transposed_block.clone());
+        key.push(result.0);
+    }
+    println!("Guessing that the key is: {:?}", str::from_utf8(&key).unwrap());
+
+    // Decrypt?!
+    let plaintext = xor_bytes(data_bytes.clone(), key);
+    println!("Plaintext: {:?}", str::from_utf8(&plaintext).unwrap());
 }
 
 fn hex_to_base64(hex_string: &str) -> Result<String, String> {
