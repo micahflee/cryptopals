@@ -43,25 +43,21 @@ fn challenge10() {
     let mut plaintext = vec![];
 
     // The previous block starts out as the IV
-    let mut prev_block = iv.clone();
+    let mut prev_block = iv;
     for block in blocks {
-        // XOR the block with the previous block, and create a new previous block
-        let entangled_block = xor_bytes(block, prev_block.clone());
-        prev_block = entangled_block.clone();
+        // Decrypt the block, and then xor it with the previous block
+        let plaintext_block1 = aes128_ecb_decrypt(block.clone(), key.clone());
+        let mut plaintext_block2 = xor_bytes(plaintext_block1, prev_block);
 
-        // Decrypt the block and append it to plaintext
-        let mut plaintext_block = aes128_ecb_decrypt(entangled_block, key.clone());
+        // Append the block to plaintext
+        plaintext.append(&mut plaintext_block2);
 
-        // Display the block
-        match str::from_utf8(&plaintext_block) {
-            Ok(v) => println!("Block decrypted: {:?}", v),
-            Err(_) => println!("Block decrypted: (invalid utf8, can't display)")
-        }
-        plaintext.append(&mut plaintext_block);
+        // Create the new previous block
+        prev_block = block;
     }
 
     // Did we decrypt?
-    //println!("Plaintext:\n\n{}", str::from_utf8(&plaintext));
+    println!("Plaintext:\n\n{}", str::from_utf8(&plaintext).unwrap());
 }
 
 fn pkcs7_padding(data: &mut Vec<u8>, blocksize: usize) {
@@ -75,6 +71,31 @@ fn pkcs7_padding(data: &mut Vec<u8>, blocksize: usize) {
         data.push(padding);
     }
 }
+
+/*
+fn aes128_ecb_encrypt(plaintext: Vec<u8>, key: Vec<u8>) -> Vec<u8> {
+    // AES-128 ECB encrypt function
+    let mut encryptor = aes::ecb_encryptor(aes::KeySize::KeySize128, &key, blockmodes::NoPadding);
+
+    let mut ciphertext = Vec::<u8>::new();
+    let mut read_buffer = buffer::RefReadBuffer::new(plaintext.as_slice());
+    let mut buffer = [0; 4096];
+    let mut write_buffer = buffer::RefWriteBuffer::new(&mut buffer);
+
+    loop {
+        let result = match encryptor.encrypt(&mut read_buffer, &mut write_buffer, true) {
+            Ok(v) => v,
+            Err(_) => panic!("Error encrypting AES-128-ECB")
+        };
+        ciphertext.extend(write_buffer.take_read_buffer().take_remaining().iter().map(|&i| i));
+        match result {
+            BufferResult::BufferUnderflow => break,
+            BufferResult::BufferOverflow => { }
+        }
+    }
+    ciphertext
+}
+*/
 
 fn aes128_ecb_decrypt(ciphertext: Vec<u8>, key: Vec<u8>) -> Vec<u8> {
     // AES-128 ECB decrypt function, basically challenge 7
@@ -110,6 +131,22 @@ mod tests {
         pkcs7_padding(&mut block, 20);
         assert_eq!(block, "YELLOW SUBMARINE\x04\x04\x04\x04".as_bytes().to_vec());
     }
+
+    /*
+    #[test]
+    fn test_aes128_ecb_encrypt() {
+        let plaintext_string = get_file_contents("data/set1/7-plaintext.txt").unwrap();
+        let plaintext = plaintext_string.as_bytes().to_vec();
+
+        let expected_ciphertext_base64 = get_file_contents("data/set1/7.txt").unwrap().replace("\n", "");
+        let expected_ciphertext = base64::decode(&expected_ciphertext_base64).unwrap();
+
+        let key = "YELLOW SUBMARINE".as_bytes().to_vec();
+        let ciphertext = aes128_ecb_encrypt(plaintext, key);
+
+        assert_eq!(ciphertext, expected_ciphertext);
+    }
+    */
 
     #[test]
     fn test_aes128_ecb_decrypt() {
