@@ -288,7 +288,7 @@ fn challenge8() {
     }
 }
 
-fn hex_to_base64(hex_string: &str) -> Result<String, String> {
+pub fn hex_to_base64(hex_string: &str) -> Result<String, String> {
     // Convert hex to Vec<u8>, an array of bytes
     let bin = match hex::decode(hex_string) {
         Ok(v) => v,
@@ -301,7 +301,7 @@ fn hex_to_base64(hex_string: &str) -> Result<String, String> {
     Ok(base64_string)
 }
 
-fn xor_bytes(bytes1: Vec<u8>, bytes2: Vec<u8>) -> Vec<u8> {
+pub fn xor_bytes(bytes1: Vec<u8>, bytes2: Vec<u8>) -> Vec<u8> {
     // The returned vector will have the length of bytes1
 
     // bytes3 = bytes1 xor bytes2
@@ -312,7 +312,7 @@ fn xor_bytes(bytes1: Vec<u8>, bytes2: Vec<u8>) -> Vec<u8> {
     bytes3
 }
 
-fn score_plaintext(plaintext: Vec<u8>) -> f32 {
+pub fn score_plaintext(plaintext: Vec<u8>) -> f32 {
     // Evaluate the bytes for likeliness of being English plaintext, and return
     // a score. The higher the score, the more likely it's plaintext.
 
@@ -374,7 +374,7 @@ fn score_plaintext(plaintext: Vec<u8>) -> f32 {
     score
 }
 
-fn brute_force_1char_xor(ciphertext: Vec<u8>) -> (u8, f32, Vec<u8>) {
+pub fn brute_force_1char_xor(ciphertext: Vec<u8>) -> (u8, f32, Vec<u8>) {
     // Takes ciphertext as a byte array, returns a tuple of (key, score, plaintext)
     // It assumes the best scored plaintext is correct
 
@@ -397,7 +397,7 @@ fn brute_force_1char_xor(ciphertext: Vec<u8>) -> (u8, f32, Vec<u8>) {
     (key, score, plaintext)
 }
 
-fn get_file_contents(filename: &str) -> Result<String, String> {
+pub fn get_file_contents(filename: &str) -> Result<String, String> {
     let path = Path::new(filename);
     let display = path.display();
     let mut file = match File::open(&path) {
@@ -413,7 +413,7 @@ fn get_file_contents(filename: &str) -> Result<String, String> {
     Ok(s)
 }
 
-fn bytes_into_blocks(bytes: Vec<u8>, blocksize: usize) -> Vec<Vec<u8>> {
+pub fn bytes_into_blocks(bytes: Vec<u8>, blocksize: usize) -> Vec<Vec<u8>> {
     // Split bytes into blocks of length blocksize, and return a vec of blocks
     // Break ciphertext into keysize blocks
     let mut blocks = vec![];
