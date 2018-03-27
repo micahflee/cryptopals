@@ -275,10 +275,24 @@ fn challenge7() {
 
 fn challenge8() {
     // https://cryptopals.com/sets/1/challenges/8
+    let hex_strings = get_file_contents("data/set1/8.txt").unwrap();
 
-    // Load and decode data
-    let ciphertext_base64 = get_file_contents("data/set1/7.txt").unwrap().replace("\n", "");
-    let ciphertext = base64::decode(&ciphertext_base64).unwrap();
+    // Loop through hex strings
+    for hex_string in hex_strings.split_whitespace() {
+        let ciphertext = hex::decode(hex_string).unwrap();
+
+        // Split ciphertext into blocks of blocksize 16
+        let mut blocks = bytes_into_blocks(ciphertext, 16);
+
+        // Are any of the blocks exactly the same?
+        blocks.sort();
+        let len1 = blocks.len();
+        blocks.dedup();
+        let len2 = blocks.len();
+        if len1 != len2 {
+            println!("Found the AES-ECB one: {}", hex_string);
+        }
+    }
 }
 
 fn hex_to_base64(hex_string: &str) -> Result<String, String> {
