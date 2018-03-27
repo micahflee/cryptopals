@@ -2,6 +2,7 @@ extern crate hex;
 extern crate base64;
 extern crate colored;
 extern crate hamming;
+extern crate crypto;
 
 use std::str;
 use std::collections::HashMap;

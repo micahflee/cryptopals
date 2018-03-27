@@ -2,6 +2,7 @@
 extern crate clap;
 extern crate colored;
 extern crate hamming;
+extern crate crypto;
 
 mod set1;
 
