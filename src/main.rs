@@ -5,6 +5,7 @@ extern crate hamming;
 extern crate crypto;
 
 mod set1;
+mod set2;
 
 use clap::{Arg, App};
 
@@ -40,9 +41,11 @@ fn main() {
         None => { 0 }
     };
 
-    // Challenge set 1
+    // Run the challenge(s)
     if set == 1 {
         set1::index(challenge);
+    } else if set == 2 {
+        set2::index(challenge);
     } else {
         println!("Sorry, I haven't implemented that challenge set");
     }
