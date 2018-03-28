@@ -115,6 +115,54 @@ fn gen_key(length: usize) -> Vec<u8> {
     key
 }
 
+fn encryption_oracle(input: Vec<u8>) -> Vec<u8> {
+    let mut rng = EntropyRng::new();
+    let mut plaintext = vec![];
+
+    // Add 5 to 10 bytes before and after the input
+    let mut before = gen_key(rng.gen_range(5, 10));
+    let mut after = gen_key(rng.gen_range(5, 10));
+    plaintext.append(&mut before);
+    plaintext.append(&mut input.clone());
+    plaintext.append(&mut after);
+
+    // Make a random key
+    let key = gen_key(16);
+
+    // Prepare the encryptor, either ECB or CBC
+    let mut encryptor;
+    let mode: u8 = rng.gen_range(0, 1);
+    if mode == 0 {
+        // ECB
+        encryptor = aes::ecb_encryptor(aes::KeySize::KeySize128, &key, blockmodes::PkcsPadding);
+    } else {
+        // CBC
+        let iv = gen_key(16);
+        encryptor = aes::cbc_encryptor(aes::KeySize::KeySize128, &key, &iv, blockmodes::PkcsPadding);
+    }
+
+    // Encrypt
+    let mut ciphertext = Vec::<u8>::new();
+    let mut read_buffer = buffer::RefReadBuffer::new(plaintext.as_slice());
+    let mut buffer = [0; 4096];
+    let mut write_buffer = buffer::RefWriteBuffer::new(&mut buffer);
+
+    loop {
+        let result = match encryptor.encrypt(&mut read_buffer, &mut write_buffer, true) {
+            Ok(v) => v,
+            Err(_) => panic!("Error encrypting")
+        };
+        ciphertext.extend(write_buffer.take_read_buffer().take_remaining().iter().map(|&i| i));
+
+        match result {
+            BufferResult::BufferUnderflow => break,
+            BufferResult::BufferOverflow => { }
+        }
+    }
+
+    ciphertext
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
