@@ -105,6 +105,16 @@ fn aes128_ecb_decrypt(ciphertext: Vec<u8>, key: Vec<u8>) -> Vec<u8> {
     plaintext
 }
 
+fn gen_key(length: usize) -> Vec<u8> {
+    // Generate a vec of random bytes of length length
+    let mut rng = EntropyRng::new();
+    let mut key = vec![];
+    for _ in 0..length {
+        key.push(rng.gen::<u8>());
+    }
+    key
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -132,13 +142,8 @@ mod tests {
 
     #[test]
     fn test_rand() {
-        let mut rng = EntropyRng::new();
-        let mut data1 = vec![];
-        let mut data2 = vec![];
-        for _ in 0..16 {
-            data1.push(rng.gen::<u8>());
-            data2.push(rng.gen::<u8>());
-        }
-        assert_ne!(data1, data2);
+        let key1 = gen_key(16);
+        let key2 = gen_key(16);
+        assert_ne!(key1, key2);
     }
 }
