@@ -12,10 +12,13 @@ pub fn index(challenge: u32) {
         challenge9();
     } else if challenge == 10 {
         challenge10();
+    } else if challenge == 11 {
+        challenge11();
     } else {
         // Run all challanges
         challenge9();
         challenge10();
+        challenge11();
     }
 }
 
@@ -60,6 +63,11 @@ fn challenge10() {
     println!("Plaintext:\n\n{}", str::from_utf8(&plaintext).unwrap());
 }
 
+fn challenge11() {
+    // https://cryptopals.com/sets/2/challenges/11
+    println!("\n{}", "An ECB/CBC detection oracle".blue().bold());
+}
+
 fn pkcs7_padding(data: &mut Vec<u8>, blocksize: usize) {
     // Add PKCS#7 padding to the end of data until it's length is a multiple of blocksize
 
@@ -71,31 +79,6 @@ fn pkcs7_padding(data: &mut Vec<u8>, blocksize: usize) {
         data.push(padding);
     }
 }
-
-/*
-fn aes128_ecb_encrypt(plaintext: Vec<u8>, key: Vec<u8>) -> Vec<u8> {
-    // AES-128 ECB encrypt function
-    let mut encryptor = aes::ecb_encryptor(aes::KeySize::KeySize128, &key, blockmodes::NoPadding);
-
-    let mut ciphertext = Vec::<u8>::new();
-    let mut read_buffer = buffer::RefReadBuffer::new(plaintext.as_slice());
-    let mut buffer = [0; 4096];
-    let mut write_buffer = buffer::RefWriteBuffer::new(&mut buffer);
-
-    loop {
-        let result = match encryptor.encrypt(&mut read_buffer, &mut write_buffer, true) {
-            Ok(v) => v,
-            Err(_) => panic!("Error encrypting AES-128-ECB")
-        };
-        ciphertext.extend(write_buffer.take_read_buffer().take_remaining().iter().map(|&i| i));
-        match result {
-            BufferResult::BufferUnderflow => break,
-            BufferResult::BufferOverflow => { }
-        }
-    }
-    ciphertext
-}
-*/
 
 fn aes128_ecb_decrypt(ciphertext: Vec<u8>, key: Vec<u8>) -> Vec<u8> {
     // AES-128 ECB decrypt function, basically challenge 7
@@ -131,22 +114,6 @@ mod tests {
         pkcs7_padding(&mut block, 20);
         assert_eq!(block, "YELLOW SUBMARINE\x04\x04\x04\x04".as_bytes().to_vec());
     }
-
-    /*
-    #[test]
-    fn test_aes128_ecb_encrypt() {
-        let plaintext_string = get_file_contents("data/set1/7-plaintext.txt").unwrap();
-        let plaintext = plaintext_string.as_bytes().to_vec();
-
-        let expected_ciphertext_base64 = get_file_contents("data/set1/7.txt").unwrap().replace("\n", "");
-        let expected_ciphertext = base64::decode(&expected_ciphertext_base64).unwrap();
-
-        let key = "YELLOW SUBMARINE".as_bytes().to_vec();
-        let ciphertext = aes128_ecb_encrypt(plaintext, key);
-
-        assert_eq!(ciphertext, expected_ciphertext);
-    }
-    */
 
     #[test]
     fn test_aes128_ecb_decrypt() {
