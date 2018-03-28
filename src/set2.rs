@@ -68,6 +68,28 @@ fn challenge10() {
 fn challenge11() {
     // https://cryptopals.com/sets/2/challenges/11
     println!("\n{}", "An ECB/CBC detection oracle".blue().bold());
+
+    // Detect if the encryption is ECB or CBC. Since the blocksize is 16, I need two plaintext
+    // blocks to be exactly the same in order to detect if the resulting ciphertext blocks
+    // are exactly the same. Since there is 5-10 random bytes at the beginning, I need to start
+    // with 11 bytes to fill the rest of the block, then 32 bytes to fill two blocks.
+
+    // Let's try 10 times
+    for _i in 0..10 {
+        let ciphertext = encryption_oracle("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".as_bytes().to_vec());
+        let mut blocks = bytes_into_blocks(ciphertext, 16);
+
+        // Are any of the blocks exactly the same?
+        blocks.sort();
+        let len1 = blocks.len();
+        blocks.dedup();
+        let len2 = blocks.len();
+        if len1 != len2 {
+            println!(".......detected ECB");
+        } else {
+            println!(".......detected CBC");
+        }
+    }
 }
 
 fn pkcs7_padding(data: &mut Vec<u8>, blocksize: usize) {
@@ -131,12 +153,14 @@ fn encryption_oracle(input: Vec<u8>) -> Vec<u8> {
 
     // Prepare the encryptor, either ECB or CBC
     let mut encryptor;
-    let mode: u8 = rng.gen_range(0, 1);
+    let mode = rng.gen_range(0, 2);
     if mode == 0 {
         // ECB
+        println!("[shh, I'm using ECB mode]");
         encryptor = aes::ecb_encryptor(aes::KeySize::KeySize128, &key, blockmodes::PkcsPadding);
     } else {
         // CBC
+        println!("[shh, I'm using CBC mode]");
         let iv = gen_key(16);
         encryptor = aes::cbc_encryptor(aes::KeySize::KeySize128, &key, &iv, blockmodes::PkcsPadding);
     }
