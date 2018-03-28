@@ -141,7 +141,7 @@ mod tests {
     }
 
     #[test]
-    fn test_rand() {
+    fn test_gen_key() {
         let key1 = gen_key(16);
         let key2 = gen_key(16);
         assert_ne!(key1, key2);
