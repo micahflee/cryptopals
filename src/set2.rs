@@ -1,6 +1,8 @@
 extern crate base64;
+extern crate rand;
 
 use std::str;
+use rand::{Rng, EntropyRng};
 use colored::Colorize;
 use crypto::{blockmodes, buffer, aes};
 use crypto::buffer::{ ReadBuffer, WriteBuffer, BufferResult };
@@ -126,5 +128,17 @@ mod tests {
         let plaintext = aes128_ecb_decrypt(ciphertext, key);
 
         assert_eq!(plaintext, expected_plaintext);
+    }
+
+    #[test]
+    fn test_rand() {
+        let mut rng = EntropyRng::new();
+        let mut data1 = vec![];
+        let mut data2 = vec![];
+        for _ in 0..16 {
+            data1.push(rng.gen::<u8>());
+            data2.push(rng.gen::<u8>());
+        }
+        assert_ne!(data1, data2);
     }
 }
