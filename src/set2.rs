@@ -2,6 +2,7 @@ extern crate base64;
 extern crate rand;
 
 use std::str;
+use std::collections::HashMap;
 use rand::{Rng, EntropyRng};
 use colored::Colorize;
 use crypto::{blockmodes, buffer, aes};
@@ -138,6 +139,38 @@ fn challenge12() {
         println!("Detected ECB");
     } else {
         println!("Did not detect ECB");
+    }
+
+    // Brute force the first block of the unknown string
+    for char_i in 0..blocksize {
+        // TODO: this is a work in progress, I left off here
+    }
+
+    // Create a message that is length blocksize-1
+    let mut message = vec![];
+    for _ in 0..(blocksize-1) {
+        message.push('A' as u8);
+    }
+    let ciphertext = encryption_oracle2(key.clone(), message.clone());
+    // The first char of the unknown string should be char1
+    let encrypted_char1 = ciphertext[blocksize-1];
+    println!("ciphertext of blocksize-1 is {}", encrypted_char1);
+
+    // Now let's brute force what that string might be
+    let mut dict: HashMap<u8, u8> = HashMap::new();
+    for i in 0..255 {
+        let mut message = vec![];
+        for _ in 0..(blocksize-1) {
+            message.push('A' as u8);
+        }
+        message.push(i);
+        let ciphertext = encryption_oracle2(key.clone(), message.clone());
+        dict.insert(i, ciphertext[blocksize-1]);
+        if ciphertext[blocksize-1] == encrypted_char1 {
+            println!("!!! plaintext {} == ciphertext {}", i, ciphertext[blocksize-1]);
+        } else {
+            println!("plaintext {} == ciphertext {}", i, ciphertext[blocksize-1]);
+        }
     }
 }
 
