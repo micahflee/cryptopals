@@ -2,7 +2,6 @@ extern crate base64;
 extern crate rand;
 
 use std::str;
-use std::collections::HashMap;
 use rand::{Rng, EntropyRng};
 use colored::Colorize;
 use crypto::{blockmodes, buffer, aes};
@@ -144,34 +143,64 @@ fn challenge12() {
     // Create variable to hold the unknown string
     let mut unknown = vec![];
 
-    // Create a message that is length blocksize
-    let mut message = vec![];
-    for _ in 0..blocksize {
-        message.push('A' as u8);
-    }
+    // Learn the unknown string one block at a time, until we run out of blocks
+    let mut block_index = 0;
+    loop {
+        let mut unknown_block = vec![];
 
-    // Brute force the first block of the unknown string
-    for i in 0..blocksize {
-        // Delete a byte from the message
-        message.remove(0);
+        // Create a message that is length blocksize
+        let mut message = vec![];
+        for _ in 0..blocksize {
+            message.push('A' as u8);
+        }
 
-        // Figure out the ciphertext byte in its place
-        let ciphertext = encryption_oracle2(key.clone(), message.clone());
-        let encrypted_byte = ciphertext[blocksize-1];
+        // Brute force the block of the unknown string
+        for _ in 0..blocksize {
+            // Delete a byte from the message
+            message.remove(0);
 
-        // Figure out what byte makes the encrypted byte
-        for i in 0..255 {
-            message.push(i);
-            let message_len = message.len();
+            // Figure out the ciphertext byte in its place
             let ciphertext = encryption_oracle2(key.clone(), message.clone());
-            if ciphertext[blocksize-1] == encrypted_byte {
-                // Found a byte of the known string!
-                unknown.push(i);
-                break;
-            } else {
-                message.remove(message_len-1);
+            let encrypted_byte = ciphertext[(block_index * blocksize) + blocksize - 1];
+            println!("Encrypted byte is {}", encrypted_byte);
+
+            // Append the unknown text so far to the message
+            message.append(&mut unknown_block.clone());
+
+            // Figure out what byte makes the encrypted byte
+            for i in 0..255 {
+                // Add byte to the message
+                message.push(i);
+
+                // Encrypt, see what the encrypted byte is
+                println!("Message: {:?}", &message);
+                let ciphertext = encryption_oracle2(key.clone(), message.clone());
+
+                // Remove that byte from the message
+                let message_len = message.len();
+                message.remove(message_len - 1);
+
+                // Did we find a new byte?
+                if ciphertext[(block_index * blocksize) + blocksize - 1] == encrypted_byte {
+                    println!("Plaintext byte {} encrypts to {}", i, ciphertext[(block_index * blocksize) + blocksize - 1]);
+
+                    // Remove the unknown text bytes from the message
+                    for _ in 0..unknown_block.len() {
+                        let message_len = message.len();
+                        message.remove(message_len - 1);
+                    }
+
+                    // Add the new byte to the unknown_block
+                    unknown_block.push(i);
+                    break;
+                }
             }
         }
+        println!("unknown_block: {:?}", unknown_block);
+        unknown.append(&mut unknown_block);
+
+        block_index += 1;
+        break;
     }
 
     println!("unknown: {:?}", str::from_utf8(&unknown).unwrap());
