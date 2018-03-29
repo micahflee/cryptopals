@@ -16,11 +16,14 @@ pub fn index(challenge: u32) {
         challenge10();
     } else if challenge == 11 {
         challenge11();
+    } else if challenge == 12 {
+        challenge12();
     } else {
         // Run all challanges
         challenge9();
         challenge10();
         challenge11();
+        challenge12();
     }
 }
 
@@ -89,6 +92,52 @@ fn challenge11() {
         } else {
             println!(".......detected CBC");
         }
+    }
+}
+
+fn challenge12() {
+    // https://cryptopals.com/sets/2/challenges/12
+    println!("\n{}", "Byte-at-a-time ECB decryption (Simple)".blue().bold());
+
+    // Here's the secret key that I don't know
+    let key = gen_key(16);
+
+    // Discover the block size
+    let mut message = vec!['A' as u8];
+    let mut last_ciphertext_len = 0;
+    let blocksize;
+    loop {
+        let ciphertext = encryption_oracle2(key.clone(), message.clone());
+
+        // If this is the first loop iteration, just record the ciphertext length
+        if last_ciphertext_len == 0 {
+            last_ciphertext_len = ciphertext.len();
+        }
+        // In future iterations, compare the length to the previous length
+        else {
+            if ciphertext.len() > last_ciphertext_len {
+                blocksize = ciphertext.len() - last_ciphertext_len;
+                break;
+            } else {
+                last_ciphertext_len = ciphertext.len();
+            }
+        }
+
+        // Add another 'A' to the message
+        message.push('A' as u8);
+    }
+    println!("Block size is: {}", blocksize);
+
+    // Now detect ECB
+    message = vec![];
+    for _ in 0..(blocksize*2) {
+        message.push('A' as u8);
+    }
+    let ciphertext = encryption_oracle2(key.clone(), message.clone());
+    if is_ciphertext_ecb(ciphertext, blocksize) {
+        println!("Detected ECB");
+    } else {
+        println!("Did not detect ECB");
     }
 }
 
@@ -226,6 +275,17 @@ fn encryption_oracle2(key: Vec<u8>, message: Vec<u8>) -> Vec<u8> {
     ciphertext
 }
 
+fn is_ciphertext_ecb(ciphertext: Vec<u8>, blocksize: usize) -> bool {
+    // Detect if a block of ciphertext is ECB or not. Note that you must
+    // have encrypted at least two identical blocks for this to work.
+    let mut blocks = bytes_into_blocks(ciphertext, blocksize);
+    blocks.sort();
+    let len1 = blocks.len();
+    blocks.dedup();
+    let len2 = blocks.len();
+    return len1 != len2;
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -256,5 +316,52 @@ mod tests {
         let key1 = gen_key(16);
         let key2 = gen_key(16);
         assert_ne!(key1, key2);
+    }
+
+    #[test]
+    fn test_is_ciphertext_ecb() {
+        let plaintext = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".as_bytes().to_vec();
+
+        // Encrypt with ECB
+        let key = gen_key(16);
+        let mut encryptor = aes::ecb_encryptor(aes::KeySize::KeySize128, &key, blockmodes::PkcsPadding);
+        let mut ecb_ciphertext = Vec::<u8>::new();
+        let mut read_buffer = buffer::RefReadBuffer::new(plaintext.as_slice());
+        let mut buffer = [0; 4096];
+        let mut write_buffer = buffer::RefWriteBuffer::new(&mut buffer);
+        loop {
+            let result = match encryptor.encrypt(&mut read_buffer, &mut write_buffer, true) {
+                Ok(v) => v,
+                Err(_) => panic!("Error encrypting")
+            };
+            ecb_ciphertext.extend(write_buffer.take_read_buffer().take_remaining().iter().map(|&i| i));
+            match result {
+                BufferResult::BufferUnderflow => break,
+                BufferResult::BufferOverflow => { }
+            }
+        }
+
+        // Encrypt with CBC
+        let key = gen_key(16);
+        let iv = gen_key(16);
+        let mut encryptor = aes::cbc_encryptor(aes::KeySize::KeySize128, &key, &iv, blockmodes::PkcsPadding);
+        let mut cbc_ciphertext = Vec::<u8>::new();
+        let mut read_buffer = buffer::RefReadBuffer::new(plaintext.as_slice());
+        let mut buffer = [0; 4096];
+        let mut write_buffer = buffer::RefWriteBuffer::new(&mut buffer);
+        loop {
+            let result = match encryptor.encrypt(&mut read_buffer, &mut write_buffer, true) {
+                Ok(v) => v,
+                Err(_) => panic!("Error encrypting")
+            };
+            cbc_ciphertext.extend(write_buffer.take_read_buffer().take_remaining().iter().map(|&i| i));
+            match result {
+                BufferResult::BufferUnderflow => break,
+                BufferResult::BufferOverflow => { }
+            }
+        }
+
+        assert_eq!(is_ciphertext_ecb(ecb_ciphertext, 16), true);
+        assert_eq!(is_ciphertext_ecb(cbc_ciphertext, 16), false);
     }
 }
