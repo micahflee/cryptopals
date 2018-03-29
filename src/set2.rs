@@ -141,37 +141,40 @@ fn challenge12() {
         println!("Did not detect ECB");
     }
 
-    // Brute force the first block of the unknown string
-    for char_i in 0..blocksize {
-        // TODO: this is a work in progress, I left off here
-    }
+    // Create variable to hold the unknown string
+    let mut unknown = vec![];
 
-    // Create a message that is length blocksize-1
+    // Create a message that is length blocksize
     let mut message = vec![];
-    for _ in 0..(blocksize-1) {
+    for _ in 0..blocksize {
         message.push('A' as u8);
     }
-    let ciphertext = encryption_oracle2(key.clone(), message.clone());
-    // The first char of the unknown string should be char1
-    let encrypted_char1 = ciphertext[blocksize-1];
-    println!("ciphertext of blocksize-1 is {}", encrypted_char1);
 
-    // Now let's brute force what that string might be
-    let mut dict: HashMap<u8, u8> = HashMap::new();
-    for i in 0..255 {
-        let mut message = vec![];
-        for _ in 0..(blocksize-1) {
-            message.push('A' as u8);
-        }
-        message.push(i);
+    // Brute force the first block of the unknown string
+    for i in 0..blocksize {
+        // Delete a byte from the message
+        message.remove(0);
+
+        // Figure out the ciphertext byte in its place
         let ciphertext = encryption_oracle2(key.clone(), message.clone());
-        dict.insert(i, ciphertext[blocksize-1]);
-        if ciphertext[blocksize-1] == encrypted_char1 {
-            println!("!!! plaintext {} == ciphertext {}", i, ciphertext[blocksize-1]);
-        } else {
-            println!("plaintext {} == ciphertext {}", i, ciphertext[blocksize-1]);
+        let encrypted_byte = ciphertext[blocksize-1];
+
+        // Figure out what byte makes the encrypted byte
+        for i in 0..255 {
+            message.push(i);
+            let message_len = message.len();
+            let ciphertext = encryption_oracle2(key.clone(), message.clone());
+            if ciphertext[blocksize-1] == encrypted_byte {
+                // Found a byte of the known string!
+                unknown.push(i);
+                break;
+            } else {
+                message.remove(message_len-1);
+            }
         }
     }
+
+    println!("unknown: {:?}", str::from_utf8(&unknown).unwrap());
 }
 
 fn pkcs7_padding(data: &mut Vec<u8>, blocksize: usize) {
