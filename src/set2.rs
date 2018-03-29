@@ -187,6 +187,45 @@ fn encryption_oracle(input: Vec<u8>) -> Vec<u8> {
     ciphertext
 }
 
+fn encryption_oracle2(key: Vec<u8>, message: Vec<u8>) -> Vec<u8> {
+    // Challenge 12 says: "Copy your oracle function to a new function that
+    // encrypts buffers under ECB mode using a consistent but unknown key
+    // (for instance, assign a single random key, once, to a global variable)."
+    // So I'm going to just generate a random key and pass it in as an arg
+
+    let mut plaintext = vec![];
+
+    // Some secret string to append after the plaintext
+    let after_base64 = "Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkgaGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBqdXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUgYnkK";
+    let mut after = base64::decode(&after_base64).unwrap();
+    plaintext.append(&mut message.clone());
+    plaintext.append(&mut after);
+
+    // Prepare the ECB encryptor
+    let mut encryptor = aes::ecb_encryptor(aes::KeySize::KeySize128, &key, blockmodes::PkcsPadding);
+
+    // Encrypt
+    let mut ciphertext = Vec::<u8>::new();
+    let mut read_buffer = buffer::RefReadBuffer::new(plaintext.as_slice());
+    let mut buffer = [0; 4096];
+    let mut write_buffer = buffer::RefWriteBuffer::new(&mut buffer);
+
+    loop {
+        let result = match encryptor.encrypt(&mut read_buffer, &mut write_buffer, true) {
+            Ok(v) => v,
+            Err(_) => panic!("Error encrypting")
+        };
+        ciphertext.extend(write_buffer.take_read_buffer().take_remaining().iter().map(|&i| i));
+
+        match result {
+            BufferResult::BufferUnderflow => break,
+            BufferResult::BufferOverflow => { }
+        }
+    }
+
+    ciphertext
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
