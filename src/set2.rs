@@ -2,6 +2,7 @@ extern crate base64;
 extern crate rand;
 
 use std::str;
+use std::collections::HashMap;
 use rand::{Rng, EntropyRng};
 use colored::Colorize;
 use crypto::{blockmodes, buffer, aes};
@@ -161,66 +162,47 @@ fn challenge12() {
 
             // Figure out the ciphertext byte in its place
             let ciphertext = encryption_oracle2(key.clone(), message.clone());
-            let encrypted_byte = ciphertext[(block_index * blocksize) + blocksize - 1];
-            println!("[testing] Message={:?}, encrypted byte={}", &message, encrypted_byte);
+            let real_ciphertext_block = &ciphertext[(block_index * blocksize)..((block_index + 1) * blocksize)];
+            println!("[testing] Message={:?}, real ciphertext block={:?}", &message, real_ciphertext_block);
 
             // Append the unknown text so far to the message
             message.append(&mut unknown_block.clone());
 
             // Figure out what byte makes the encrypted byte
-            let mut found = vec![];
             for i in 0..255 {
                 // Add byte to the message
                 message.push(i);
 
                 // Encrypt, see what the encrypted byte is
                 let ciphertext = encryption_oracle2(key.clone(), message.clone());
+                let ciphertext_block = &ciphertext[(block_index * blocksize)..((block_index + 1) * blocksize)];
+
+                // Remove that byte from the message
+                let message_len = message.len();
+                message.remove(message_len - 1);
 
                 // Did we find a new byte?
-                if ciphertext[(block_index * blocksize) + blocksize - 1] == encrypted_byte {
-                    println!("Message={:?}, plaintext byte {} encrypts to {}", &message, i, ciphertext[(block_index * blocksize) + blocksize - 1]);
-
+                if real_ciphertext_block == ciphertext_block {
                     // Remove the unknown text bytes from the message
                     for _ in 0..unknown_block.len() {
                         let message_len = message.len();
                         message.remove(message_len - 1);
                     }
 
-                    // Remove that byte from the message
-                    let message_len = message.len();
-                    message.remove(message_len - 1);
-
                     // Add the new byte to the list of bytes that work
-                    found.push(i);
-                } else {
-                    // Remove that byte from the message
-                    let message_len = message.len();
-                    message.remove(message_len - 1);
+                    unknown_block.push(i);
+                    break;
                 }
             }
-            if found.len() == 0 {
-                println!("Did not find the correct byte, quitting early :(");
-                match str::from_utf8(&unknown_block) {
-                    Ok(v) => println!("unknown_block: {:?}", v),
-                    Err(v) => println!("unknown_block: {:?}", unknown_block)
-                };
-                break;
-            } else if found.len() == 1 {
-                // Add the only possible new byte to the unknown_block
-                unknown_block.push(found[0]);
-            } else {
-                println!("Potential bytes: {:?}", found);
-                break;
-            }
         }
-        //println!("unknown_block: {:?}", unknown_block);
+        println!("unknown_block: {}", str::from_utf8(&unknown_block).unwrap());
         unknown.append(&mut unknown_block);
 
         block_index += 1;
         break;
     }
 
-    //println!("unknown: {:?}", str::from_utf8(&unknown).unwrap());
+    println!("unknown: {}", str::from_utf8(&unknown).unwrap());
 }
 
 fn pkcs7_padding(data: &mut Vec<u8>, blocksize: usize) {
