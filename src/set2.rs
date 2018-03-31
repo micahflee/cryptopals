@@ -268,8 +268,8 @@ fn challenge13() {
     // https://cryptopals.com/sets/2/challenges/13
     println!("\n{}", "ECB cut-and-paste".blue().bold());
 
-    let object = parse("foo=bar&foobar=example.com").unwrap();
-    println!("{:?}", object);
+    //let object = parse("foo=bar&foobar=example.com").unwrap();
+    //println!("{:?}", object);
 }
 
 fn pkcs7_padding(data: &mut Vec<u8>, blocksize: usize) {
@@ -430,9 +430,14 @@ fn profile_for(email: &str) -> String {
     // }
     //  ... encoded as:
     // email=foo@bar.com&uid=10&role=user
+    //  Your "profile_for" function should not allow encoding metacharacters (& and =). Eat them,
+    // quote them, whatever you want to do, but don't let people set their email address to
+    // "foo@bar.com&role=admin".
+
+    let sanitized_email = email.replace("&", "").replace("=", "");
 
     let mut s = String::from("email=");
-    s.push_str(email);
+    s.push_str(sanitized_email.as_str());
     s.push_str("&uid=10&role=user");
     s
 }
@@ -521,6 +526,10 @@ mod tests {
         assert_eq!(
             profile_for("foo@bar.com"),
             String::from("email=foo@bar.com&uid=10&role=user")
+        );
+        assert_eq!(
+            profile_for("foo@bar.com&role=admin"),
+            String::from("email=foo@bar.comroleadmin&uid=10&role=user")
         );
     }
 }
