@@ -2,7 +2,6 @@ extern crate base64;
 extern crate rand;
 
 use std::str;
-use std::collections::HashMap;
 use rand::{Rng, EntropyRng};
 use colored::Colorize;
 use crypto::{blockmodes, buffer, aes};
@@ -147,6 +146,7 @@ fn challenge12() {
     // Learn the unknown string one block at a time, until we run out of blocks
     let mut prev_block = vec![];;
     let mut block_index = 0;
+    let mut quit = false;
     loop {
         let mut unknown_block = vec![];
         let mut message = vec![];
@@ -197,12 +197,13 @@ fn challenge12() {
 
             // Already know the first block, finding later blocks
             else {
-                // 3rd block, [234A][AAA1][2345][6xxx]
-                //           mine ^      real ^
+                // when brute forcing 2nd block, 3rd block is real, [234A][AAA1][2345][6xxx]
+                //                                                 mine ^      real ^
                 real_ciphertext_block = &ciphertext[((block_index + 1) * blocksize)..((block_index + 2) * blocksize)];
             }
 
             // Figure out what byte makes the encrypted byte
+            let mut found = false;
             for i in 0..255 {
                 // Make a guess for that byte
                 if block_index == 0 {
@@ -233,26 +234,40 @@ fn challenge12() {
 
                     // Add the new byte to the list of bytes that work
                     unknown_block.push(i);
-                    println!("{:?}{:?}", str::from_utf8(&unknown).unwrap(), str::from_utf8(&unknown_block).unwrap());
+                    found = true;
+                    println!("{:?} {:?}", str::from_utf8(&unknown).unwrap(), str::from_utf8(&unknown_block).unwrap());
                     break;
                 }
             }
+
+            // Did we not find it?
+            if !found {
+                // I think is a good time to break out of the loop
+                quit = true;
+            }
         }
-        println!("unknown_block: {:?}", str::from_utf8(&unknown_block).unwrap());
+        println!("unknown_block: {:?}", &unknown_block);
         prev_block = unknown_block.clone();
         unknown.append(&mut unknown_block);
 
         block_index += 1;
+
+        if quit {
+            break;
+        }
     }
 
-    println!("unknown: {}", str::from_utf8(&unknown).unwrap());
+    println!("\nPLAINTEXT:\n{}", str::from_utf8(&unknown).unwrap());
 }
 
 fn pkcs7_padding(data: &mut Vec<u8>, blocksize: usize) {
     // Add PKCS#7 padding to the end of data until it's length is a multiple of blocksize
 
     // How much padding do we need?
-    let padding: u8 = (blocksize - (data.len() % blocksize)) as u8;
+    let mut padding: u8 = (blocksize - (data.len() % blocksize)) as u8;
+    if padding == 0 {
+        padding += blocksize as u8;
+    }
 
     // Append that much padding to the end
     for _ in 0..padding {
