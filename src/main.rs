@@ -4,6 +4,7 @@ extern crate colored;
 extern crate hamming;
 extern crate crypto;
 extern crate rand;
+extern crate queryst;
 
 mod set1;
 mod set2;

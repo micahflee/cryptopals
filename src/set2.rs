@@ -6,6 +6,7 @@ use rand::{Rng, EntropyRng};
 use colored::Colorize;
 use crypto::{blockmodes, buffer, aes};
 use crypto::buffer::{ ReadBuffer, WriteBuffer, BufferResult };
+use queryst::parse;
 
 use set1::{get_file_contents, xor_bytes, bytes_into_blocks};
 
@@ -18,12 +19,15 @@ pub fn index(challenge: u32) {
         challenge11();
     } else if challenge == 12 {
         challenge12();
+    } else if challenge == 13 {
+        challenge13();
     } else {
         // Run all challanges
         challenge9();
         challenge10();
         challenge11();
         challenge12();
+        challenge13();
     }
 }
 
@@ -258,6 +262,14 @@ fn challenge12() {
     }
 
     println!("\nPLAINTEXT:\n{}", str::from_utf8(&unknown).unwrap());
+}
+
+fn challenge13() {
+    // https://cryptopals.com/sets/2/challenges/13
+    println!("\n{}", "ECB cut-and-paste".blue().bold());
+
+    let object = parse("foo=bar&foobar=example.com").unwrap();
+    println!("{:?}", object);
 }
 
 fn pkcs7_padding(data: &mut Vec<u8>, blocksize: usize) {
