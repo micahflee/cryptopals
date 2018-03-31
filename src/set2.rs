@@ -420,6 +420,23 @@ fn is_ciphertext_ecb(ciphertext: Vec<u8>, blocksize: usize) -> bool {
     return len1 != len2;
 }
 
+fn profile_for(email: &str) -> String {
+    // Now write a function that encodes a user profile in that format, given an email address.
+    // You should have something like: profile_for("foo@bar.com") ... and it should produce:
+    // {
+    //   email: 'foo@bar.com',
+    //   uid: 10,
+    //   role: 'user'
+    // }
+    //  ... encoded as:
+    // email=foo@bar.com&uid=10&role=user
+
+    let mut s = String::from("email=");
+    s.push_str(email);
+    s.push_str("&uid=10&role=user");
+    s
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -497,5 +514,13 @@ mod tests {
 
         assert_eq!(is_ciphertext_ecb(ecb_ciphertext, 16), true);
         assert_eq!(is_ciphertext_ecb(cbc_ciphertext, 16), false);
+    }
+
+    #[test]
+    fn test_profile_for() {
+        assert_eq!(
+            profile_for("foo@bar.com"),
+            String::from("email=foo@bar.com&uid=10&role=user")
+        );
     }
 }
