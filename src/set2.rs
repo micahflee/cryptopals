@@ -177,9 +177,7 @@ fn challenge12() {
         }
 
         // Brute force the unknown byte
-        for i in 0..blocksize {
-            println!("iteration {}, message={:?}", i, &message);
-
+        for _ in 0..blocksize {
             // Delete a byte from the beginning of the message
             message.remove(0);
 
@@ -201,7 +199,7 @@ fn challenge12() {
             else {
                 // 3rd block, [234A][AAA1][2345][6xxx]
                 //           mine ^      real ^
-                real_ciphertext_block = &ciphertext[(2 * blocksize)..(3 * blocksize)];
+                real_ciphertext_block = &ciphertext[((block_index + 1) * blocksize)..((block_index + 2) * blocksize)];
             }
 
             // Figure out what byte makes the encrypted byte
@@ -235,11 +233,12 @@ fn challenge12() {
 
                     // Add the new byte to the list of bytes that work
                     unknown_block.push(i);
+                    println!("{:?}{:?}", str::from_utf8(&unknown).unwrap(), str::from_utf8(&unknown_block).unwrap());
                     break;
                 }
             }
         }
-        println!("unknown_block: {}", str::from_utf8(&unknown_block).unwrap());
+        println!("unknown_block: {:?}", str::from_utf8(&unknown_block).unwrap());
         prev_block = unknown_block.clone();
         unknown.append(&mut unknown_block);
 
