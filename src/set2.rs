@@ -145,48 +145,92 @@ fn challenge12() {
     let mut unknown = vec![];
 
     // Learn the unknown string one block at a time, until we run out of blocks
+    let mut prev_block = vec![];;
     let mut block_index = 0;
     loop {
         let mut unknown_block = vec![];
-
-        // Create a message that is length blocksize
         let mut message = vec![];
+
+        // Assuming blocksize is 4, unknown is "123456", padding is "x".
+        // Find the first block (block_index == 0) like this:
+        // [AAAA][1234][56xx]
+        // [AAA?][2345][5xxx]
+        // [AA1?][3456][xxxx]
+        // [A12?][456x]
+        // [123?][56xx]
+        // Found the first block: [1234] <-- prev_block
+
+        // If we know the first block, I want my message to be two blocks
+        // long, but where the first block starts out as prev_block like this:
+        // [1234][AAAA][1234][56xx]
+        // [234?][AAA1][2345][6xxx]
+        // [345?][AA12][3456][xxxx]
+        // Found the next block: [3456]  <-- prev_block
+
+        // Append the previous block to the message
+        // (If this is the first loop, prev_block is empty)
+        message.append(&mut prev_block);
+
+        // Add blocksize worth of 'A's to the message
         for _ in 0..blocksize {
             message.push('A' as u8);
         }
 
-        // Brute force the block of the unknown string
-        for _ in 0..blocksize {
-            // Delete a byte from the message
+        // Brute force the unknown byte
+        for i in 0..blocksize {
+            println!("iteration {}, message={:?}", i, &message);
+
+            // Delete a byte from the beginning of the message
             message.remove(0);
 
             // Figure out the ciphertext byte in its place
             let ciphertext = encryption_oracle2(key.clone(), message.clone());
-            let real_ciphertext_block = &ciphertext[(block_index * blocksize)..((block_index + 1) * blocksize)];
-            println!("[testing] Message={:?}, real ciphertext block={:?}", &message, real_ciphertext_block);
+            let real_ciphertext_block;
 
-            // Append the unknown text so far to the message
-            message.append(&mut unknown_block.clone());
+            // Still finding the first block
+            if block_index == 0 {
+                // 1st block, [AAA1][2345][6xxx]
+                //      mine/real ^
+                real_ciphertext_block = &ciphertext[0..blocksize];
+
+                // Append the unknown text so far to the message
+                message.append(&mut unknown_block.clone());
+            }
+
+            // Already know the first block, finding later blocks
+            else {
+                // 3rd block, [234A][AAA1][2345][6xxx]
+                //           mine ^      real ^
+                real_ciphertext_block = &ciphertext[(2 * blocksize)..(3 * blocksize)];
+            }
 
             // Figure out what byte makes the encrypted byte
             for i in 0..255 {
-                // Add byte to the message
-                message.push(i);
+                // Make a guess for that byte
+                if block_index == 0 {
+                    message.push(i);
+                } else {
+                    message[blocksize-1] = i;
+                }
 
-                // Encrypt, see what the encrypted byte is
+                // Encrypt it, store the encrypted block
                 let ciphertext = encryption_oracle2(key.clone(), message.clone());
-                let ciphertext_block = &ciphertext[(block_index * blocksize)..((block_index + 1) * blocksize)];
+                let guess_ciphertext_block = &ciphertext[0..blocksize];
 
-                // Remove that byte from the message
-                let message_len = message.len();
-                message.remove(message_len - 1);
+                if block_index == 0 {
+                    // Remove that byte from the message
+                    let message_len = message.len();
+                    message.remove(message_len - 1);
+                }
 
                 // Did we find a new byte?
-                if real_ciphertext_block == ciphertext_block {
-                    // Remove the unknown text bytes from the message
-                    for _ in 0..unknown_block.len() {
-                        let message_len = message.len();
-                        message.remove(message_len - 1);
+                if real_ciphertext_block == guess_ciphertext_block {
+                    if block_index == 0 {
+                        // Remove the unknown text bytes from the message
+                        for _ in 0..unknown_block.len() {
+                            let message_len = message.len();
+                            message.remove(message_len - 1);
+                        }
                     }
 
                     // Add the new byte to the list of bytes that work
@@ -196,10 +240,10 @@ fn challenge12() {
             }
         }
         println!("unknown_block: {}", str::from_utf8(&unknown_block).unwrap());
+        prev_block = unknown_block.clone();
         unknown.append(&mut unknown_block);
 
         block_index += 1;
-        break;
     }
 
     println!("unknown: {}", str::from_utf8(&unknown).unwrap());
