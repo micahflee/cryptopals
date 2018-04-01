@@ -268,10 +268,35 @@ fn challenge13() {
     // https://cryptopals.com/sets/2/challenges/13
     println!("\n{}", "ECB cut-and-paste".blue().bold());
 
+    // Generate a random key
     let key = gen_key(16);
-    let ciphertext = challenge13_encrypt(key.clone(), "foobar=test1&barfoo=test2");
-    challenge13_decrypt_and_parse(key.clone(), ciphertext);
 
+    // Let's see what profile_for stings look like
+    // profile_for("test") returns "email=test&uid=10&role=user"
+    // "----------------" "----------------"
+    // "email=AAAAAAAAAA" "AAA&uid=10&role=" "user"                         <- profile_for("AAAAAAAAAAAAA")
+    // "email=AAAAAAAAAA" "admin&uid=10&rol" "e=user"                       <- profile_for("AAAAAAAAAAadmin")
+    // "email=AAAAAAAAAA" "AAAAAAAAAAAAAAA&" "uid=10&role=user" "[padding]" <- profile_for("AAAAAAAAAAAAAAAAAAAAAAAAA")
+
+    let ciphertext1 = challenge13_encrypt(key.clone(), &profile_for("AAAAAAAAAAAAA"));
+    let ciphertext2 = challenge13_encrypt(key.clone(), &profile_for("AAAAAAAAAAadmin"));
+    let ciphertext3 = challenge13_encrypt(key.clone(), &profile_for("AAAAAAAAAAAAAAAAAAAAAAAAA"));
+    let mut ciphertext1_blocks = bytes_into_blocks(ciphertext1, 16);
+    let mut ciphertext2_blocks = bytes_into_blocks(ciphertext2, 16);
+    let mut ciphertext3_blocks = bytes_into_blocks(ciphertext3, 16);
+    println!("ciphertext1_blocks length: {}", ciphertext1_blocks.len());
+    println!("ciphertext2_blocks length: {}", ciphertext2_blocks.len());
+    println!("ciphertext3_blocks length: {}", ciphertext3_blocks.len());
+
+    println!("String will be: email=AAAAAAAAAAAAA&uid=10&role=admin&uid=10&rol");
+
+    let mut patchwork_ciphertext = vec![];
+    patchwork_ciphertext.append(&mut ciphertext1_blocks[0]);
+    patchwork_ciphertext.append(&mut ciphertext1_blocks[1]);
+    patchwork_ciphertext.append(&mut ciphertext2_blocks[1]);
+    patchwork_ciphertext.append(&mut ciphertext3_blocks[3]); // Padding-only block
+
+    challenge13_decrypt_and_parse(key.clone(), patchwork_ciphertext);
 }
 
 fn pkcs7_padding(data: &mut Vec<u8>, blocksize: usize) {
