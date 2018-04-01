@@ -268,8 +268,10 @@ fn challenge13() {
     // https://cryptopals.com/sets/2/challenges/13
     println!("\n{}", "ECB cut-and-paste".blue().bold());
 
-    //let object = parse("foo=bar&foobar=example.com").unwrap();
-    //println!("{:?}", object);
+    let key = gen_key(16);
+    let ciphertext = challenge13_encrypt(key.clone(), "foobar=test1&barfoo=test2");
+    challenge13_decrypt_and_parse(key.clone(), ciphertext);
+
 }
 
 fn pkcs7_padding(data: &mut Vec<u8>, blocksize: usize) {
@@ -440,6 +442,57 @@ fn profile_for(email: &str) -> String {
     s.push_str(sanitized_email.as_str());
     s.push_str("&uid=10&role=user");
     s
+}
+
+fn challenge13_encrypt(key: Vec<u8>, message: &str) -> Vec<u8> {
+    // Encrypt the message to the key, return the ciphertext
+    let plaintext = message.as_bytes().to_vec();
+    let mut encryptor = aes::ecb_encryptor(aes::KeySize::KeySize128, &key, blockmodes::PkcsPadding);
+    let mut ciphertext = Vec::<u8>::new();
+    let mut read_buffer = buffer::RefReadBuffer::new(plaintext.as_slice());
+    let mut buffer = [0; 4096];
+    let mut write_buffer = buffer::RefWriteBuffer::new(&mut buffer);
+    loop {
+        let result = match encryptor.encrypt(&mut read_buffer, &mut write_buffer, true) {
+            Ok(v) => v,
+            Err(_) => panic!("Error encrypting")
+        };
+        ciphertext.extend(write_buffer.take_read_buffer().take_remaining().iter().map(|&i| i));
+
+        match result {
+            BufferResult::BufferUnderflow => break,
+            BufferResult::BufferOverflow => { }
+        }
+    }
+    ciphertext
+}
+
+fn challenge13_decrypt_and_parse(key: Vec<u8>, ciphertext: Vec<u8>) {
+    // Decrypt the ciphertext, parse it with queryst::parse, and print the resuling data structure
+    let mut decryptor = aes::ecb_decryptor(aes::KeySize::KeySize128, &key, blockmodes::PkcsPadding);
+    let mut plaintext = Vec::<u8>::new();
+    let mut read_buffer = buffer::RefReadBuffer::new(ciphertext.as_slice());
+    let mut buffer = [0; 4096];
+    let mut write_buffer = buffer::RefWriteBuffer::new(&mut buffer);
+    loop {
+        let result = match decryptor.decrypt(&mut read_buffer, &mut write_buffer, true) {
+            Ok(v) => v,
+            Err(_) => panic!("Error decrypting")
+        };
+        plaintext.extend(write_buffer.take_read_buffer().take_remaining().iter().map(|&i| i));
+
+        match result {
+            BufferResult::BufferUnderflow => break,
+            BufferResult::BufferOverflow => { }
+        }
+    }
+
+    // Convert plaintext to a string
+    let plaintext_string = str::from_utf8(&plaintext).unwrap();
+
+    // Decode it
+    let object = parse(plaintext_string).unwrap();
+    println!("{:?}", object);
 }
 
 #[cfg(test)]
