@@ -333,7 +333,8 @@ fn challenge14() {
     }
     println!("message_prefix length: {}", message_prefix.len());
 
-    /*
+    // Now I just need to append message_prefix before each oracle request
+
     // Create variable to hold the unknown string
     let mut unknown = vec![];
 
@@ -360,28 +361,21 @@ fn challenge14() {
             message.remove(0);
 
             // Figure out the ciphertext byte in its place
-            let mut ciphertext = vec![];
-            while ciphertext.len() / blocksize != smaller_block_count {
-                ciphertext = encryption_oracle3(key.clone(), message.clone());
-            }
-            println!("number of blocks: {}", ciphertext.len() / blocksize);
+            let mut full_message = vec![];
+            full_message.append(&mut message_prefix.clone());
+            full_message.append(&mut message.clone());
+            let mut ciphertext = encryption_oracle3(key.clone(), prefix.clone(), full_message);
             let real_ciphertext_block;
+
+            // The first block is taken up by prefix concated with message_prefix, so skip that block
+            // when getting the real_ciphertext_block
 
             // Still finding the first block
             if block_index == 0 {
-                // 1st block, [AAA1][2345][6xxx]
-                //      mine/real ^
-                real_ciphertext_block = &ciphertext[0..blocksize];
-
-                // Append the unknown text so far to the message
+                real_ciphertext_block = &ciphertext[blocksize..(blocksize * 2)];
                 message.append(&mut unknown_block.clone());
-            }
-
-            // Already know the first block, finding later blocks
-            else {
-                // when brute forcing 2nd block, 3rd block is real, [234A][AAA1][2345][6xxx]
-                //                                                 mine ^      real ^
-                real_ciphertext_block = &ciphertext[((block_index + 1) * blocksize)..((block_index + 2) * blocksize)];
+            } else {
+                real_ciphertext_block = &ciphertext[((block_index + 2) * blocksize)..((block_index + 3) * blocksize)];
             }
 
             // Figure out what byte makes the encrypted byte
@@ -395,11 +389,13 @@ fn challenge14() {
                 }
 
                 // Encrypt it, store the encrypted block
-                let mut ciphertext = vec![];
-                while ciphertext.len() / blocksize != smaller_block_count {
-                    ciphertext = encryption_oracle3(key.clone(), message.clone());
-                }
-                let guess_ciphertext_block = &ciphertext[0..blocksize];
+                let mut full_message = vec![];
+                full_message.append(&mut message_prefix.clone());
+                full_message.append(&mut message.clone());
+                let mut ciphertext = encryption_oracle3(key.clone(), prefix.clone(), full_message);
+
+                // Same with guess_ciphertext_block, skip the first block
+                let guess_ciphertext_block = &ciphertext[blocksize..(blocksize * 2)];
 
                 if block_index == 0 {
                     // Remove that byte from the message
@@ -436,6 +432,7 @@ fn challenge14() {
         unknown.append(&mut unknown_block);
 
         block_index += 1;
+        break;
 
         if quit {
             break;
@@ -443,7 +440,6 @@ fn challenge14() {
     }
 
     println!("\nPLAINTEXT:\n{}", str::from_utf8(&unknown).unwrap());
-    */
 }
 
 
