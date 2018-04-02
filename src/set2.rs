@@ -309,22 +309,31 @@ fn challenge14() {
     let key = gen_key(16);
     let blocksize = 16;
 
-    // Learn how many blocks long the ciphertext is as verious points. I expect there two
-    // different values, a smaller one if the prefix is 0 bytes, the larger one if the prefix is
-    // greater than zero bytes.
-    let mut counts = vec![];
-    for _ in 0..64 {
-        let ciphertext = encryption_oracle3(key.clone(), "AAAAAAAAAAAAAAAA".as_bytes().to_vec());
-        let length = ciphertext.len() / blocksize;
-        if !counts.contains(&length) {
-            counts.push(length);
-        }
-    }
-    counts.sort();
-    println!("block counts: {:?}", &counts);
-    let smaller_block_count = counts[0];
+    // Generate a random prefix between 1 and 16 bytes long
+    let mut rng = EntropyRng::new();
+    let prefix = gen_key(rng.gen_range(1, 17));
+
+    // I need to use the oracle to detect how many bytes we need to prepend to our own message
+    // (called message_prefix, not to be confused with prefix), in order to cause the prefix to
+    // fill up the block.
+
+    // First, how many blocks is the output with a zero length message?
+    let mut message_prefix = vec![];
+    let ciphertext = encryption_oracle3(key.clone(), prefix.clone(), message_prefix.clone());
+    let smaller_block_count = ciphertext.len() / blocksize;
     println!("smaller block count: {}", &smaller_block_count);
 
+    // Now, add bytes to the message_prefix until the block count increases
+    loop {
+        message_prefix.push('B' as u8);
+        let ciphertext = encryption_oracle3(key.clone(), prefix.clone(), message_prefix.clone());
+        if ciphertext.len() / blocksize > smaller_block_count {
+            break;
+        }
+    }
+    println!("message_prefix length: {}", message_prefix.len());
+
+    /*
     // Create variable to hold the unknown string
     let mut unknown = vec![];
 
@@ -355,6 +364,7 @@ fn challenge14() {
             while ciphertext.len() / blocksize != smaller_block_count {
                 ciphertext = encryption_oracle3(key.clone(), message.clone());
             }
+            println!("number of blocks: {}", ciphertext.len() / blocksize);
             let real_ciphertext_block;
 
             // Still finding the first block
@@ -433,6 +443,7 @@ fn challenge14() {
     }
 
     println!("\nPLAINTEXT:\n{}", str::from_utf8(&unknown).unwrap());
+    */
 }
 
 
@@ -573,7 +584,7 @@ fn encryption_oracle2(key: Vec<u8>, message: Vec<u8>) -> Vec<u8> {
     ciphertext
 }
 
-fn encryption_oracle3(key: Vec<u8>, message: Vec<u8>) -> Vec<u8> {
+fn encryption_oracle3(key: Vec<u8>, prefix: Vec<u8>, message: Vec<u8>) -> Vec<u8> {
     // Take your oracle function from #12. Now generate a random count of random bytes and
     // prepend this string to every plaintext. You are now doing:
     //   AES-128-ECB(random-prefix || attacker-controlled || target-bytes, random-key)
@@ -581,9 +592,7 @@ fn encryption_oracle3(key: Vec<u8>, message: Vec<u8>) -> Vec<u8> {
     let mut new_message = vec![];
 
     // Add between 0 and 16 random bytes to the beginning
-    let mut rng = EntropyRng::new();
-    let mut before = gen_key(rng.gen_range(0, 16));
-    new_message.append(&mut before);
+    new_message.append(&mut prefix.clone());
     new_message.append(&mut message.clone());
 
     encryption_oracle2(key, new_message)
