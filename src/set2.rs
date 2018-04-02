@@ -21,6 +21,8 @@ pub fn index(challenge: u32) {
         challenge12();
     } else if challenge == 13 {
         challenge13();
+    } else if challenge == 14 {
+        challenge14();
     } else {
         // Run all challanges
         challenge9();
@@ -28,6 +30,7 @@ pub fn index(challenge: u32) {
         challenge11();
         challenge12();
         challenge13();
+        challenge14();
     }
 }
 
@@ -299,6 +302,140 @@ fn challenge13() {
     challenge13_decrypt_and_parse(key.clone(), patchwork_ciphertext);
 }
 
+fn challenge14() {
+    // https://cryptopals.com/sets/2/challenges/12
+    println!("\n{}", "Byte-at-a-time ECB decryption (Harder)".blue().bold());
+
+    let key = gen_key(16);
+    let blocksize = 16;
+
+    // Learn how many blocks long the ciphertext is as verious points. I expect there two
+    // different values, a smaller one if the prefix is 0 bytes, the larger one if the prefix is
+    // greater than zero bytes.
+    let mut counts = vec![];
+    for _ in 0..64 {
+        let ciphertext = encryption_oracle3(key.clone(), "AAAAAAAAAAAAAAAA".as_bytes().to_vec());
+        let length = ciphertext.len() / blocksize;
+        if !counts.contains(&length) {
+            counts.push(length);
+        }
+    }
+    counts.sort();
+    println!("block counts: {:?}", &counts);
+    let smaller_block_count = counts[0];
+    println!("smaller block count: {}", &smaller_block_count);
+
+    // Create variable to hold the unknown string
+    let mut unknown = vec![];
+
+    // Learn the unknown string one block at a time, until we run out of blocks
+    let mut prev_block = vec![];;
+    let mut block_index = 0;
+    let mut quit = false;
+    loop {
+        let mut unknown_block = vec![];
+        let mut message = vec![];
+
+        // Append the previous block to the message
+        // (If this is the first loop, prev_block is empty)
+        message.append(&mut prev_block);
+
+        // Add blocksize worth of 'A's to the message
+        for _ in 0..blocksize {
+            message.push('A' as u8);
+        }
+
+        // Brute force the unknown byte
+        for _ in 0..blocksize {
+            // Delete a byte from the beginning of the message
+            message.remove(0);
+
+            // Figure out the ciphertext byte in its place
+            let mut ciphertext = vec![];
+            while ciphertext.len() / blocksize != smaller_block_count {
+                ciphertext = encryption_oracle3(key.clone(), message.clone());
+            }
+            let real_ciphertext_block;
+
+            // Still finding the first block
+            if block_index == 0 {
+                // 1st block, [AAA1][2345][6xxx]
+                //      mine/real ^
+                real_ciphertext_block = &ciphertext[0..blocksize];
+
+                // Append the unknown text so far to the message
+                message.append(&mut unknown_block.clone());
+            }
+
+            // Already know the first block, finding later blocks
+            else {
+                // when brute forcing 2nd block, 3rd block is real, [234A][AAA1][2345][6xxx]
+                //                                                 mine ^      real ^
+                real_ciphertext_block = &ciphertext[((block_index + 1) * blocksize)..((block_index + 2) * blocksize)];
+            }
+
+            // Figure out what byte makes the encrypted byte
+            let mut found = false;
+            for i in 0..255 {
+                // Make a guess for that byte
+                if block_index == 0 {
+                    message.push(i);
+                } else {
+                    message[blocksize-1] = i;
+                }
+
+                // Encrypt it, store the encrypted block
+                let mut ciphertext = vec![];
+                while ciphertext.len() / blocksize != smaller_block_count {
+                    ciphertext = encryption_oracle3(key.clone(), message.clone());
+                }
+                let guess_ciphertext_block = &ciphertext[0..blocksize];
+
+                if block_index == 0 {
+                    // Remove that byte from the message
+                    let message_len = message.len();
+                    message.remove(message_len - 1);
+                }
+
+                // Did we find a new byte?
+                if real_ciphertext_block == guess_ciphertext_block {
+                    if block_index == 0 {
+                        // Remove the unknown text bytes from the message
+                        for _ in 0..unknown_block.len() {
+                            let message_len = message.len();
+                            message.remove(message_len - 1);
+                        }
+                    }
+
+                    // Add the new byte to the list of bytes that work
+                    unknown_block.push(i);
+                    found = true;
+                    println!("{:?} {:?}", str::from_utf8(&unknown).unwrap(), str::from_utf8(&unknown_block).unwrap());
+                    break;
+                }
+            }
+
+            // Did we not find it?
+            if !found {
+                // I think is a good time to break out of the loop
+                quit = true;
+            }
+        }
+        println!("unknown_block: {:?}", &unknown_block);
+        prev_block = unknown_block.clone();
+        unknown.append(&mut unknown_block);
+
+        block_index += 1;
+
+        if quit {
+            break;
+        }
+    }
+
+    println!("\nPLAINTEXT:\n{}", str::from_utf8(&unknown).unwrap());
+}
+
+
 fn pkcs7_padding(data: &mut Vec<u8>, blocksize: usize) {
     // Add PKCS#7 padding to the end of data until it's length is a multiple of blocksize
 
@@ -434,6 +571,22 @@ fn encryption_oracle2(key: Vec<u8>, message: Vec<u8>) -> Vec<u8> {
     }
 
     ciphertext
+}
+
+fn encryption_oracle3(key: Vec<u8>, message: Vec<u8>) -> Vec<u8> {
+    // Take your oracle function from #12. Now generate a random count of random bytes and
+    // prepend this string to every plaintext. You are now doing:
+    //   AES-128-ECB(random-prefix || attacker-controlled || target-bytes, random-key)
+    // Same goal: decrypt the target-bytes.
+    let mut new_message = vec![];
+
+    // Add between 0 and 16 random bytes to the beginning
+    let mut rng = EntropyRng::new();
+    let mut before = gen_key(rng.gen_range(0, 16));
+    new_message.append(&mut before);
+    new_message.append(&mut message.clone());
+
+    encryption_oracle2(key, new_message)
 }
 
 fn is_ciphertext_ecb(ciphertext: Vec<u8>, blocksize: usize) -> bool {
