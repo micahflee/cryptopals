@@ -317,21 +317,37 @@ fn challenge14() {
     // (called message_prefix, not to be confused with prefix), in order to cause the prefix to
     // fill up the block.
 
-    // First, how many blocks is the output with a zero length message?
-    let mut message_prefix = vec![];
-    let ciphertext = encryption_oracle3(key.clone(), prefix.clone(), message_prefix.clone());
-    let smaller_block_count = ciphertext.len() / blocksize;
-    println!("smaller block count: {}", &smaller_block_count);
+    // I can do this by detecting ECB. I fill up my message with two blocks of 'A's, and then see if
+    // any blocks repeat. I add an 'A' to the message until they do. So if blocksize is 8 and prefix
+    // length 5, my message is 16 'A's. Then I add 3 more 'A's before I detect ECB. That means my
+    // message_prefix should be 3.
 
-    // Now, add bytes to the message_prefix until the block count increases
+    // [XXXXXAAA][AAAAAAAA][AAAAAAAA]
+    //                           ^^^ extra 3 bytes to make ECB detectable
+
+
+    // Start with two blocks worth of 'A's to the message, in order to detect ECB mode
+    let mut message = vec![];
+    for _ in 0..(blocksize * 2) {
+        message.push('A' as u8);
+    }
+
+    // Check for ECB mode, add an 'A', check again, etc. until we find ECB mode
     loop {
-        message_prefix.push('B' as u8);
-        let ciphertext = encryption_oracle3(key.clone(), prefix.clone(), message_prefix.clone());
-        if ciphertext.len() / blocksize > smaller_block_count {
+        let ciphertext = encryption_oracle3(key.clone(), prefix.clone(), message.clone());
+        if is_ciphertext_ecb(ciphertext, blocksize) {
             break;
         }
+        message.push('A' as u8);
     }
-    println!("message_prefix length: {}", message_prefix.len());
+    let message_prefix_size = message.len() - (blocksize * 2);
+    println!("Prepend {} bytes to the message to complete the block", message_prefix_size);
+
+    // Create the message prefix
+    let mut message_prefix = vec![];
+    for _ in 0..message_prefix_size {
+        message_prefix.push('B' as u8);
+    }
 
     // Now I just need to append message_prefix before each oracle request
 
@@ -432,7 +448,6 @@ fn challenge14() {
         unknown.append(&mut unknown_block);
 
         block_index += 1;
-        break;
 
         if quit {
             break;
