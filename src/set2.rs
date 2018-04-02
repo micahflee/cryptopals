@@ -23,6 +23,8 @@ pub fn index(challenge: u32) {
         challenge13();
     } else if challenge == 14 {
         challenge14();
+    } else if challenge == 15 {
+        challenge15();
     } else {
         // Run all challanges
         challenge9();
@@ -31,6 +33,7 @@ pub fn index(challenge: u32) {
         challenge12();
         challenge13();
         challenge14();
+        challenge15();
     }
 }
 
@@ -457,6 +460,24 @@ fn challenge14() {
     println!("\nPLAINTEXT:\n{}", str::from_utf8(&unknown).unwrap());
 }
 
+fn challenge15() {
+    // https://cryptopals.com/sets/2/challenges/15
+    println!("\n{}", "PKCS#7 padding validation".blue().bold());
+
+    assert_eq!(
+        validate_pkcs7_padding("ICE ICE BABY\x04\x04\x04\x04".as_bytes().to_vec()),
+        Ok("ICE ICE BABY".as_bytes().to_vec())
+    );
+    assert_eq!(
+        validate_pkcs7_padding("ICE ICE BABY\x05\x05\x05\x05".as_bytes().to_vec()),
+        Err(String::from("invalid padding"))
+    );
+    assert_eq!(
+        validate_pkcs7_padding("ICE ICE BABY\x01\x02\x03\x04".as_bytes().to_vec()),
+        Err(String::from("invalid padding"))
+    );
+    println!("validate_pkcs7_padding works as advertised");
+}
 
 fn pkcs7_padding(data: &mut Vec<u8>, blocksize: usize) {
     // Add PKCS#7 padding to the end of data until it's length is a multiple of blocksize
