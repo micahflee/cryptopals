@@ -25,6 +25,8 @@ pub fn index(challenge: u32) {
         challenge14();
     } else if challenge == 15 {
         challenge15();
+    } else if challenge == 15 {
+        challenge16();
     } else {
         // Run all challanges
         challenge9();
@@ -34,6 +36,7 @@ pub fn index(challenge: u32) {
         challenge13();
         challenge14();
         challenge15();
+        challenge16();
     }
 }
 
@@ -479,6 +482,16 @@ fn challenge15() {
     println!("validate_pkcs7_padding works as advertised");
 }
 
+fn challenge16() {
+    // https://cryptopals.com/sets/2/challenges/16
+    println!("\n{}", "CBC bitflipping attacks".blue().bold());
+
+    // Random key
+    let key = gen_key(16);
+
+    // TODO: finish
+}
+
 fn pkcs7_padding(data: &mut Vec<u8>, blocksize: usize) {
     // Add PKCS#7 padding to the end of data until it's length is a multiple of blocksize
 
@@ -747,6 +760,87 @@ fn validate_pkcs7_padding(padded_plaintext: Vec<u8>) -> Result<Vec<u8>, String> 
     Ok(plaintext)
 }
 
+fn cbc_bitflipping_encrypt(key: Vec<u8>, iv: Vec<u8>, message: String) -> Vec<u8> {
+    // Strip ";" and "=" from the message
+    let stripped_message = message.replace(";", "").replace("=", "");
+
+    // Build the plaintext string
+    let mut plaintext = vec![];
+    plaintext.append(&mut "comment1=cooking%20MCs;userdata=".as_bytes().to_vec());
+    plaintext.append(&mut stripped_message.as_bytes().to_vec());
+    plaintext.append(&mut ";comment2=%20like%20a%20pound%20of%20bacon".as_bytes().to_vec());
+
+    // Encrypt with AES CBC mode
+    let mut encryptor = aes::cbc_encryptor(aes::KeySize::KeySize128, &key, &iv, blockmodes::PkcsPadding);
+    let mut ciphertext = Vec::<u8>::new();
+    let mut read_buffer = buffer::RefReadBuffer::new(plaintext.as_slice());
+    let mut buffer = [0; 4096];
+    let mut write_buffer = buffer::RefWriteBuffer::new(&mut buffer);
+    loop {
+        let result = match encryptor.encrypt(&mut read_buffer, &mut write_buffer, true) {
+            Ok(v) => v,
+            Err(_) => panic!("Error encrypting")
+        };
+        ciphertext.extend(write_buffer.take_read_buffer().take_remaining().iter().map(|&i| i));
+        match result {
+            BufferResult::BufferUnderflow => break,
+            BufferResult::BufferOverflow => { }
+        }
+    }
+
+    ciphertext
+}
+
+fn cbc_bitflipping_decrypt(key: Vec<u8>, iv: Vec<u8>, ciphertext: Vec<u8>) -> bool {
+    // Decrypt with AES CBC mode
+    let mut decryptor = aes::cbc_decryptor(aes::KeySize::KeySize128, &key, &iv, blockmodes::PkcsPadding);
+    let mut plaintext = Vec::<u8>::new();
+    let mut read_buffer = buffer::RefReadBuffer::new(ciphertext.as_slice());
+    let mut buffer = [0; 4096];
+    let mut write_buffer = buffer::RefWriteBuffer::new(&mut buffer);
+    loop {
+        let result = match decryptor.decrypt(&mut read_buffer, &mut write_buffer, true) {
+            Ok(v) => v,
+            Err(_) => panic!("Error encrypting")
+        };
+        plaintext.extend(write_buffer.take_read_buffer().take_remaining().iter().map(|&i| i));
+        match result {
+            BufferResult::BufferUnderflow => break,
+            BufferResult::BufferOverflow => { }
+        }
+    }
+
+    // Print the plaintext message
+    match str::from_utf8(&plaintext) {
+        Ok(v) => println!("{}", v),
+        Err(_) => println!("{:?}", &plaintext)
+    };
+
+    // Search for ";admin=true;"
+    let search = ";admin=true;".as_bytes().to_vec();
+    vec_contains(plaintext, search)
+}
+
+fn vec_contains(haystack: Vec<u8>, needle: Vec<u8>) -> bool {
+    if haystack.len() < needle.len() {
+        return false;
+    }
+
+    // Search for haystack for needle
+    let mut i = 0;
+    for byte in &haystack {
+        if *byte == needle[i] {
+            i += 1;
+            if i == needle.len() {
+                return true;
+            }
+        } else {
+            i = 0;
+        }
+    }
+    false
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -852,5 +946,12 @@ mod tests {
             validate_pkcs7_padding("ICE ICE BABY\x01\x02\x03\x04".as_bytes().to_vec()),
             Err(String::from("invalid padding"))
         );
+    }
+
+    #[test]
+    fn test_vec_contains() {
+        let haystack = "the quick brown fox jumps over the lazy dog".as_bytes().to_vec();
+        assert_eq!(vec_contains(haystack.clone(), "brown fox".as_bytes().to_vec()), true);
+        assert_eq!(vec_contains(haystack.clone(), "blue fox".as_bytes().to_vec()), false);
     }
 }
