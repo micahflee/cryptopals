@@ -8,6 +8,7 @@ extern crate queryst;
 
 mod set1;
 mod set2;
+mod utils;
 
 use clap::{Arg, App};
 
