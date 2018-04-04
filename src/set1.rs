@@ -6,13 +6,11 @@ extern crate crypto;
 
 use std::str;
 use std::collections::HashMap;
-use std::error::Error;
-use std::fs::File;
-use std::io::prelude::*;
-use std::path::Path;
 use colored::Colorize;
 use crypto::{blockmodes, buffer, aes};
 use crypto::buffer::{ ReadBuffer, WriteBuffer, BufferResult };
+
+use utils::{get_file_contents, xor_bytes, bytes_into_blocks};
 
 pub fn index(challenge: u32) {
     if challenge == 1 {
@@ -301,17 +299,6 @@ pub fn hex_to_base64(hex_string: &str) -> Result<String, String> {
     Ok(base64_string)
 }
 
-pub fn xor_bytes(bytes1: Vec<u8>, bytes2: Vec<u8>) -> Vec<u8> {
-    // The returned vector will have the length of bytes1
-
-    // bytes3 = bytes1 xor bytes2
-    let mut bytes3 = vec![];
-    for i in 0..bytes1.len() {
-        bytes3.push(bytes1[i] ^ bytes2[i % bytes2.len()])
-    }
-    bytes3
-}
-
 pub fn score_plaintext(plaintext: Vec<u8>) -> f32 {
     // Evaluate the bytes for likeliness of being English plaintext, and return
     // a score. The higher the score, the more likely it's plaintext.
@@ -397,43 +384,6 @@ pub fn brute_force_1char_xor(ciphertext: Vec<u8>) -> (u8, f32, Vec<u8>) {
     (key, score, plaintext)
 }
 
-pub fn get_file_contents(filename: &str) -> Result<String, String> {
-    let path = Path::new(filename);
-    let display = path.display();
-    let mut file = match File::open(&path) {
-        Err(why) => return Err(format!("couldn't open {}: {}", display, why.description())),
-        Ok(file) => file,
-    };
-
-    let mut s = String::new();
-    match file.read_to_string(&mut s) {
-        Err(why) => return Err(format!("couldn't read {}: {}", display, why.description())),
-        Ok(_) => {},
-    }
-    Ok(s)
-}
-
-pub fn bytes_into_blocks(bytes: Vec<u8>, blocksize: usize) -> Vec<Vec<u8>> {
-    // Split bytes into blocks of length blocksize, and return a vec of blocks
-    // Break ciphertext into keysize blocks
-    let mut blocks = vec![];
-    let mut i = 0;
-    loop {
-        if bytes.len() >= blocksize * (i + 1) {
-            let block = &bytes[(blocksize * i)..(blocksize * (i + 1))];
-            blocks.push(block.to_vec());
-            i += 1;
-        } else {
-            let block = &bytes[(blocksize * i)..bytes.len()];
-            if block.len() > 0 {
-                blocks.push(block.to_vec());
-            }
-            break;
-        }
-    }
-    blocks
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -443,18 +393,6 @@ mod tests {
         assert_eq!(
             hex_to_base64("49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d").unwrap(),
             "SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb29t"
-        );
-    }
-
-    #[test]
-    fn test_xor_bytes() {
-        assert_eq!(
-            xor_bytes(vec![1, 2, 3], vec![130, 140, 150]),
-            vec![131, 142, 149]
-        );
-        assert_eq!(
-            xor_bytes(vec![1, 2, 3, 4, 5], vec![128]),
-            vec![129, 130, 131, 132, 133]
         );
     }
 
@@ -480,20 +418,5 @@ mod tests {
             "wokka wokka!!!".as_bytes()
         );
         assert_eq!(d, 37);
-    }
-
-    #[test]
-    fn test_bytes_into_blocks() {
-        let bytes = "AAAABBBBCCCCDD".as_bytes().to_vec();
-        let blocks = bytes_into_blocks(bytes, 4);
-        assert_eq!(
-            blocks,
-            vec![
-                "AAAA".as_bytes().to_vec(),
-                "BBBB".as_bytes().to_vec(),
-                "CCCC".as_bytes().to_vec(),
-                "DD".as_bytes().to_vec()
-            ]
-        );
     }
 }

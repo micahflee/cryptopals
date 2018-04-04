@@ -8,7 +8,7 @@ use crypto::{blockmodes, buffer, aes};
 use crypto::buffer::{ ReadBuffer, WriteBuffer, BufferResult };
 use queryst::parse;
 
-use set1::{get_file_contents, xor_bytes, bytes_into_blocks};
+use utils::{get_file_contents, xor_bytes, bytes_into_blocks};
 
 pub fn index(challenge: u32) {
     if challenge == 9 {
@@ -844,7 +844,7 @@ fn vec_contains(haystack: Vec<u8>, needle: Vec<u8>) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use set1::get_file_contents;
+    use utils::get_file_contents;
 
     #[test]
     fn test_pkcs7_padding() {
