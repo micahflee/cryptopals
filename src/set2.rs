@@ -8,7 +8,7 @@ use crypto::{blockmodes, buffer, aes};
 use crypto::buffer::{ ReadBuffer, WriteBuffer, BufferResult };
 use queryst::parse;
 
-use utils::{get_file_contents, xor_bytes, bytes_into_blocks};
+use utils::{get_file_contents, xor_bytes, bytes_into_blocks, pkcs7_padding, gen_key, vec_contains};
 
 pub fn index(challenge: u32) {
     if challenge == 9 {
@@ -492,21 +492,6 @@ fn challenge16() {
     // TODO: finish
 }
 
-fn pkcs7_padding(data: &mut Vec<u8>, blocksize: usize) {
-    // Add PKCS#7 padding to the end of data until it's length is a multiple of blocksize
-
-    // How much padding do we need?
-    let mut padding: u8 = (blocksize - (data.len() % blocksize)) as u8;
-    if padding == 0 {
-        padding += blocksize as u8;
-    }
-
-    // Append that much padding to the end
-    for _ in 0..padding {
-        data.push(padding);
-    }
-}
-
 fn aes128_ecb_decrypt(ciphertext: Vec<u8>, key: Vec<u8>) -> Vec<u8> {
     // AES-128 ECB decrypt function, basically challenge 7
     let mut decryptor = aes::ecb_decryptor(aes::KeySize::KeySize128, &key, blockmodes::NoPadding);
@@ -528,16 +513,6 @@ fn aes128_ecb_decrypt(ciphertext: Vec<u8>, key: Vec<u8>) -> Vec<u8> {
         }
     }
     plaintext
-}
-
-fn gen_key(length: usize) -> Vec<u8> {
-    // Generate a vec of random bytes of length length
-    let mut rng = EntropyRng::new();
-    let mut key = vec![];
-    for _ in 0..length {
-        key.push(rng.gen::<u8>());
-    }
-    key
 }
 
 fn encryption_oracle(input: Vec<u8>) -> Vec<u8> {
@@ -821,37 +796,10 @@ fn cbc_bitflipping_decrypt(key: Vec<u8>, iv: Vec<u8>, ciphertext: Vec<u8>) -> bo
     vec_contains(plaintext, search)
 }
 
-fn vec_contains(haystack: Vec<u8>, needle: Vec<u8>) -> bool {
-    if haystack.len() < needle.len() {
-        return false;
-    }
-
-    // Search for haystack for needle
-    let mut i = 0;
-    for byte in &haystack {
-        if *byte == needle[i] {
-            i += 1;
-            if i == needle.len() {
-                return true;
-            }
-        } else {
-            i = 0;
-        }
-    }
-    false
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use utils::get_file_contents;
-
-    #[test]
-    fn test_pkcs7_padding() {
-        let mut block = "YELLOW SUBMARINE".as_bytes().to_vec();
-        pkcs7_padding(&mut block, 20);
-        assert_eq!(block, "YELLOW SUBMARINE\x04\x04\x04\x04".as_bytes().to_vec());
-    }
 
     #[test]
     fn test_aes128_ecb_decrypt() {
@@ -864,13 +812,6 @@ mod tests {
         let plaintext = aes128_ecb_decrypt(ciphertext, key);
 
         assert_eq!(plaintext, expected_plaintext);
-    }
-
-    #[test]
-    fn test_gen_key() {
-        let key1 = gen_key(16);
-        let key2 = gen_key(16);
-        assert_ne!(key1, key2);
     }
 
     #[test]
@@ -946,12 +887,5 @@ mod tests {
             validate_pkcs7_padding("ICE ICE BABY\x01\x02\x03\x04".as_bytes().to_vec()),
             Err(String::from("invalid padding"))
         );
-    }
-
-    #[test]
-    fn test_vec_contains() {
-        let haystack = "the quick brown fox jumps over the lazy dog".as_bytes().to_vec();
-        assert_eq!(vec_contains(haystack.clone(), "brown fox".as_bytes().to_vec()), true);
-        assert_eq!(vec_contains(haystack.clone(), "blue fox".as_bytes().to_vec()), false);
     }
 }

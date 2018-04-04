@@ -3,6 +3,7 @@ use std::error::Error;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
+use rand::{Rng, EntropyRng};
 
 pub fn xor_bytes(bytes1: Vec<u8>, bytes2: Vec<u8>) -> Vec<u8> {
     // The returned vector will have the length of bytes1
@@ -52,6 +53,51 @@ pub fn bytes_into_blocks(bytes: Vec<u8>, blocksize: usize) -> Vec<Vec<u8>> {
     blocks
 }
 
+pub fn pkcs7_padding(data: &mut Vec<u8>, blocksize: usize) {
+    // Add PKCS#7 padding to the end of data until it's length is a multiple of blocksize
+
+    // How much padding do we need?
+    let mut padding: u8 = (blocksize - (data.len() % blocksize)) as u8;
+    if padding == 0 {
+        padding += blocksize as u8;
+    }
+
+    // Append that much padding to the end
+    for _ in 0..padding {
+        data.push(padding);
+    }
+}
+
+pub fn gen_key(length: usize) -> Vec<u8> {
+    // Generate a vec of random bytes of length length
+    let mut rng = EntropyRng::new();
+    let mut key = vec![];
+    for _ in 0..length {
+        key.push(rng.gen::<u8>());
+    }
+    key
+}
+
+pub fn vec_contains(haystack: Vec<u8>, needle: Vec<u8>) -> bool {
+    if haystack.len() < needle.len() {
+        return false;
+    }
+
+    // Search for haystack for needle
+    let mut i = 0;
+    for byte in &haystack {
+        if *byte == needle[i] {
+            i += 1;
+            if i == needle.len() {
+                return true;
+            }
+        } else {
+            i = 0;
+        }
+    }
+    false
+}
+
 pub fn bytes_to_string(bytes: &[u8]) -> String {
     // Convert a byte array to a printable string, even if it contains bytes that can't be encoded
     // in utf8. Instead, display their hex values at that point (not unicode).
@@ -97,6 +143,27 @@ mod tests {
                 "DD".as_bytes().to_vec()
             ]
         );
+    }
+
+    #[test]
+    fn test_pkcs7_padding() {
+        let mut block = "YELLOW SUBMARINE".as_bytes().to_vec();
+        pkcs7_padding(&mut block, 20);
+        assert_eq!(block, "YELLOW SUBMARINE\x04\x04\x04\x04".as_bytes().to_vec());
+    }
+
+    #[test]
+    fn test_gen_key() {
+        let key1 = gen_key(16);
+        let key2 = gen_key(16);
+        assert_ne!(key1, key2);
+    }
+
+    #[test]
+    fn test_vec_contains() {
+        let haystack = "the quick brown fox jumps over the lazy dog".as_bytes().to_vec();
+        assert_eq!(vec_contains(haystack.clone(), "brown fox".as_bytes().to_vec()), true);
+        assert_eq!(vec_contains(haystack.clone(), "blue fox".as_bytes().to_vec()), false);
     }
 
     #[test]
