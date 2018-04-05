@@ -116,7 +116,7 @@ pub fn bytes_to_string(bytes: &[u8]) -> String {
     s
 }
 
-pub fn aes_cbc_encrypt(key: Vec<u8>, iv: Vec<u8>, plaintext: Vec<u8>) -> Vec<u8> {
+pub fn aes_cbc_encrypt(key: Vec<u8>, iv: Vec<u8>, plaintext: Vec<u8>) -> Result<Vec<u8>, String> {
     let mut encryptor = aes::cbc_encryptor(aes::KeySize::KeySize128, &key, &iv, blockmodes::PkcsPadding);
     let mut ciphertext = Vec::<u8>::new();
     let mut read_buffer = buffer::RefReadBuffer::new(plaintext.as_slice());
@@ -126,7 +126,7 @@ pub fn aes_cbc_encrypt(key: Vec<u8>, iv: Vec<u8>, plaintext: Vec<u8>) -> Vec<u8>
     loop {
         let result = match encryptor.encrypt(&mut read_buffer, &mut write_buffer, true) {
             Ok(v) => v,
-            Err(_) => panic!("Error encrypting")
+            Err(_) => return Err(String::from("Error encrypting"))
         };
         ciphertext.extend(write_buffer.take_read_buffer().take_remaining().iter().map(|&i| i));
 
@@ -135,11 +135,10 @@ pub fn aes_cbc_encrypt(key: Vec<u8>, iv: Vec<u8>, plaintext: Vec<u8>) -> Vec<u8>
             BufferResult::BufferOverflow => { }
         }
     }
-
-    ciphertext
+    Ok(ciphertext)
 }
 
-pub fn aes_cbc_decrypt(key: Vec<u8>, iv: Vec<u8>, ciphertext: Vec<u8>) -> Vec<u8> {
+pub fn aes_cbc_decrypt(key: Vec<u8>, iv: Vec<u8>, ciphertext: Vec<u8>) -> Result<Vec<u8>, String> {
     let mut decryptor = aes::cbc_decryptor(aes::KeySize::KeySize128, &key, &iv, blockmodes::PkcsPadding);
     let mut plaintext = Vec::<u8>::new();
     let mut read_buffer = buffer::RefReadBuffer::new(ciphertext.as_slice());
@@ -149,7 +148,7 @@ pub fn aes_cbc_decrypt(key: Vec<u8>, iv: Vec<u8>, ciphertext: Vec<u8>) -> Vec<u8
     loop {
         let result = match decryptor.decrypt(&mut read_buffer, &mut write_buffer, true) {
             Ok(v) => v,
-            Err(_) => panic!("Error encrypting")
+            Err(_) => return Err(String::from("Error decrypting"))
         };
         plaintext.extend(write_buffer.take_read_buffer().take_remaining().iter().map(|&i| i));
 
@@ -158,8 +157,7 @@ pub fn aes_cbc_decrypt(key: Vec<u8>, iv: Vec<u8>, ciphertext: Vec<u8>) -> Vec<u8
             BufferResult::BufferOverflow => { }
         }
     }
-
-    plaintext
+    Ok(plaintext)
 }
 
 pub fn validate_pkcs7_padding(padded_plaintext: Vec<u8>) -> Result<Vec<u8>, String> {
@@ -265,8 +263,8 @@ mod tests {
         let key = gen_key(16);
         let iv = gen_key(16);
 
-        let ciphertext = aes_cbc_encrypt(key.clone(), iv.clone(), plaintext.clone());
-        let plaintext2 = aes_cbc_decrypt(key, iv, ciphertext);
+        let ciphertext = aes_cbc_encrypt(key.clone(), iv.clone(), plaintext.clone()).unwrap();
+        let plaintext2 = aes_cbc_decrypt(key, iv, ciphertext).unwrap();
 
         assert_eq!(plaintext, plaintext2);
     }

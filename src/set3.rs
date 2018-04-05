@@ -3,7 +3,8 @@ extern crate base64;
 use colored::Colorize;
 use rand::{Rng, EntropyRng};
 
-use utils::{gen_key, aes_cbc_encrypt, aes_cbc_decrypt, bytes_to_string, pkcs7_padding, validate_pkcs7_padding};
+use utils::{gen_key, aes_cbc_encrypt, aes_cbc_decrypt, bytes_to_string, pkcs7_padding,
+            validate_pkcs7_padding};
 
 pub fn index(challenge: u32) {
     if challenge == 17 {
@@ -42,11 +43,32 @@ fn challenge17() {
     let key = gen_key(16);
     let iv = gen_key(16);
 
+    // Give me some ciphertext
     let ciphertext = ch17_func1(key.clone(), iv.clone());
-    if ch17_func2(key.clone(), iv.clone(), ciphertext) {
-        println!("padded properly");
-    } else {
-        println!("not padded properly");
+    let block_size = 16;
+    let block_count = ciphertext.len() / 16;
+
+    // Modify the ciphertext
+    let mut mal_ciphertext = ciphertext.clone();
+
+    // Decrypt the last block first, but modifying the second to last block
+    //let mut plaintext_block = vec![];
+    let index = block_size * (block_count - 2) - 1;
+    println!("Modifying index {}, trying to decrypt index {}", index, index + block_size);
+    for guess in 1..255 {
+        mal_ciphertext[index] = guess;
+
+        match ch17_func2(key.clone(), iv.clone(), mal_ciphertext.clone()) {
+            Ok(padding_success) => {
+                if padding_success {
+                    if ciphertext[index] ^ guess != 0 {
+                        let plaintext_byte = ciphertext[index + block_size] ^ guess;
+                        println!("Found a byte: {} ({})", plaintext_byte as char, plaintext_byte);
+                    }
+                }
+            },
+            Err(_) => { }
+        };
     }
 }
 
@@ -71,23 +93,26 @@ fn ch17_func1(key: Vec<u8>, iv: Vec<u8>) -> Vec<u8> {
     let mut rng = EntropyRng::new();
     let mut message = base64::decode(&base64_messages[rng.gen_range(0, base64_messages.len())]).unwrap();
     pkcs7_padding(&mut message, 16);
+    println!("Message: {}", bytes_to_string(&message));
 
     // Encrypt
-    aes_cbc_encrypt(key, iv, message)
+    aes_cbc_encrypt(key, iv, message).unwrap()
 }
 
-fn ch17_func2(key: Vec<u8>, iv: Vec<u8>, ciphertext: Vec<u8>) -> bool {
+fn ch17_func2(key: Vec<u8>, iv: Vec<u8>, ciphertext: Vec<u8>) -> Result<bool, String> {
     // Decrypt ciphertext, return where or not the plaintext is properly padded
 
     // Decrypt
-    let plaintext = aes_cbc_decrypt(key, iv, ciphertext);
-    println!("Plaintext: {}", bytes_to_string(&plaintext));
+    let plaintext = match aes_cbc_decrypt(key, iv, ciphertext) {
+        Ok(v) => v,
+        Err(v) => return Err(v)
+    };
 
     // Check padding
-    match validate_pkcs7_padding(plaintext) {
+    Ok(match validate_pkcs7_padding(plaintext) {
         Ok(_) => true,
         Err(_) => false
-    }
+    })
 }
 
 fn challenge18() {
