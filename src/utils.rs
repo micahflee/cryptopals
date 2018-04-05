@@ -4,6 +4,8 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
 use rand::{Rng, EntropyRng};
+use crypto::{blockmodes, buffer, aes};
+use crypto::buffer::{ ReadBuffer, WriteBuffer, BufferResult };
 
 pub fn xor_bytes(bytes1: Vec<u8>, bytes2: Vec<u8>) -> Vec<u8> {
     // The returned vector will have the length of bytes1
@@ -114,6 +116,52 @@ pub fn bytes_to_string(bytes: &[u8]) -> String {
     s
 }
 
+pub fn aes_cbc_encrypt(key: Vec<u8>, iv: Vec<u8>, plaintext: Vec<u8>) -> Vec<u8> {
+    let mut encryptor = aes::cbc_encryptor(aes::KeySize::KeySize128, &key, &iv, blockmodes::PkcsPadding);
+    let mut ciphertext = Vec::<u8>::new();
+    let mut read_buffer = buffer::RefReadBuffer::new(plaintext.as_slice());
+    let mut buffer = [0; 4096];
+    let mut write_buffer = buffer::RefWriteBuffer::new(&mut buffer);
+
+    loop {
+        let result = match encryptor.encrypt(&mut read_buffer, &mut write_buffer, true) {
+            Ok(v) => v,
+            Err(_) => panic!("Error encrypting")
+        };
+        ciphertext.extend(write_buffer.take_read_buffer().take_remaining().iter().map(|&i| i));
+
+        match result {
+            BufferResult::BufferUnderflow => break,
+            BufferResult::BufferOverflow => { }
+        }
+    }
+
+    ciphertext
+}
+
+pub fn aes_cbc_decrypt(key: Vec<u8>, iv: Vec<u8>, ciphertext: Vec<u8>) -> Vec<u8> {
+    let mut decryptor = aes::cbc_decryptor(aes::KeySize::KeySize128, &key, &iv, blockmodes::PkcsPadding);
+    let mut plaintext = Vec::<u8>::new();
+    let mut read_buffer = buffer::RefReadBuffer::new(ciphertext.as_slice());
+    let mut buffer = [0; 4096];
+    let mut write_buffer = buffer::RefWriteBuffer::new(&mut buffer);
+
+    loop {
+        let result = match decryptor.decrypt(&mut read_buffer, &mut write_buffer, true) {
+            Ok(v) => v,
+            Err(_) => panic!("Error encrypting")
+        };
+        plaintext.extend(write_buffer.take_read_buffer().take_remaining().iter().map(|&i| i));
+
+        match result {
+            BufferResult::BufferUnderflow => break,
+            BufferResult::BufferOverflow => { }
+        }
+    }
+
+    plaintext
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -176,5 +224,17 @@ mod tests {
             bytes_to_string(&[104, 101, 108, 108, 111, 0, 1, 2, 3, 4, 5, 255]),
             String::from("hello\\x00\\x01\\x02\\x03\\x04\\x05\\xff")
         );
+    }
+
+    #[test]
+    fn test_aes_cbc() {
+        let plaintext = "It uses hand-drawn stick figure graphics and writing characterized by surreal humor, word play, parody and references to popular culture. In KoL, a player's character fights monsters for experience, and acquiring meat (the game's currency), and/or items, through a turn-based system. Players may also interact with each other through player versus player competition, participate in the in-game economy by trading goods and services, organize their characters into clans, work together to complete clan dungeons, and speak to each other in many different chat channels.".as_bytes().to_vec();
+        let key = gen_key(16);
+        let iv = gen_key(16);
+
+        let ciphertext = aes_cbc_encrypt(key.clone(), iv.clone(), plaintext.clone());
+        let plaintext2 = aes_cbc_decrypt(key, iv, ciphertext);
+
+        assert_eq!(plaintext, plaintext2);
     }
 }
