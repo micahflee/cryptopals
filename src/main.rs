@@ -8,6 +8,7 @@ extern crate queryst;
 
 mod set1;
 mod set2;
+mod set3;
 mod utils;
 
 use clap::{Arg, App};
@@ -49,6 +50,8 @@ fn main() {
         set1::index(challenge);
     } else if set == 2 {
         set2::index(challenge);
+    } else if set == 3 {
+        set3::index(challenge);
     } else {
         println!("Sorry, I haven't implemented that challenge set");
     }
