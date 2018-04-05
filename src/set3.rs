@@ -1,4 +1,9 @@
+extern crate base64;
+
 use colored::Colorize;
+use rand::{Rng, EntropyRng};
+
+use utils::{gen_key, aes_cbc_encrypt, aes_cbc_decrypt, bytes_to_string, pkcs7_padding, validate_pkcs7_padding};
 
 pub fn index(challenge: u32) {
     if challenge == 17 {
@@ -33,7 +38,56 @@ pub fn index(challenge: u32) {
 fn challenge17() {
     // https://cryptopals.com/sets/3/challenges/17
     println!("\n{}", "Challenge 17: The CBC padding oracle".blue().bold());
-    println!("(not implemented yet)");
+
+    let key = gen_key(16);
+    let iv = gen_key(16);
+
+    let ciphertext = ch17_func1(key.clone(), iv.clone());
+    if ch17_func2(key.clone(), iv.clone(), ciphertext) {
+        println!("padded properly");
+    } else {
+        println!("not padded properly");
+    }
+}
+
+fn ch17_func1(key: Vec<u8>, iv: Vec<u8>) -> Vec<u8> {
+    // Take a random string, base64 decode it, add padding, encrypt it to key (using iv), and return
+    // the ciphertext
+
+    let base64_messages = vec![
+        "MDAwMDAwTm93IHRoYXQgdGhlIHBhcnR5IGlzIGp1bXBpbmc=",
+        "MDAwMDAxV2l0aCB0aGUgYmFzcyBraWNrZWQgaW4gYW5kIHRoZSBWZWdhJ3MgYXJlIHB1bXBpbic=",
+        "MDAwMDAyUXVpY2sgdG8gdGhlIHBvaW50LCB0byB0aGUgcG9pbnQsIG5vIGZha2luZw==",
+        "MDAwMDAzQ29va2luZyBNQydzIGxpa2UgYSBwb3VuZCBvZiBiYWNvbg==",
+        "MDAwMDA0QnVybmluZyAnZW0sIGlmIHlvdSBhaW4ndCBxdWljayBhbmQgbmltYmxl",
+        "MDAwMDA1SSBnbyBjcmF6eSB3aGVuIEkgaGVhciBhIGN5bWJhbA==",
+        "MDAwMDA2QW5kIGEgaGlnaCBoYXQgd2l0aCBhIHNvdXBlZCB1cCB0ZW1wbw==",
+        "MDAwMDA3SSdtIG9uIGEgcm9sbCwgaXQncyB0aW1lIHRvIGdvIHNvbG8=",
+        "MDAwMDA4b2xsaW4nIGluIG15IGZpdmUgcG9pbnQgb2g=",
+        "MDAwMDA5aXRoIG15IHJhZy10b3AgZG93biBzbyBteSBoYWlyIGNhbiBibG93"
+    ];
+
+    // Choose a random string, base64 decode it, and add padding
+    let mut rng = EntropyRng::new();
+    let mut message = base64::decode(&base64_messages[rng.gen_range(0, base64_messages.len())]).unwrap();
+    pkcs7_padding(&mut message, 16);
+
+    // Encrypt
+    aes_cbc_encrypt(key, iv, message)
+}
+
+fn ch17_func2(key: Vec<u8>, iv: Vec<u8>, ciphertext: Vec<u8>) -> bool {
+    // Decrypt ciphertext, return where or not the plaintext is properly padded
+
+    // Decrypt
+    let plaintext = aes_cbc_decrypt(key, iv, ciphertext);
+    println!("Plaintext: {}", bytes_to_string(&plaintext));
+
+    // Check padding
+    match validate_pkcs7_padding(plaintext) {
+        Ok(_) => true,
+        Err(_) => false
+    }
 }
 
 fn challenge18() {
