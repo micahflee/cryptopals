@@ -162,6 +162,39 @@ pub fn aes_cbc_decrypt(key: Vec<u8>, iv: Vec<u8>, ciphertext: Vec<u8>) -> Vec<u8
     plaintext
 }
 
+pub fn validate_pkcs7_padding(padded_plaintext: Vec<u8>) -> Result<Vec<u8>, String> {
+    // Determines if padded_plaintext has valid PKCS#7 padding, and strips the padding off
+
+    // Error if plaintext is empty
+    if padded_plaintext.is_empty() {
+        return Err(String::from("plaintext is empty"));
+    }
+
+    // What is the last byte?
+    let length = padded_plaintext.len();
+    let last_byte = padded_plaintext[length - 1];
+
+    // The value of the last byte cannot be bigger than the length of the plaintext
+    if last_byte as usize > padded_plaintext.len() {
+        return Err(String::from("invalid padding, last byte is larger than the length of the plaintext"));
+    }
+
+    // Make sure that the last last_byte bytes all equal last_byte
+    let mut success = true;
+    for i in 0..last_byte {
+        if padded_plaintext[length - 1 - i as usize] != last_byte {
+            success = false;
+        }
+    }
+    if !success {
+        return Err(String::from("invalid padding"));
+    }
+
+    // Strip the padding
+    let plaintext = padded_plaintext[0..(length - last_byte as usize)].to_vec();
+    Ok(plaintext)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -236,5 +269,21 @@ mod tests {
         let plaintext2 = aes_cbc_decrypt(key, iv, ciphertext);
 
         assert_eq!(plaintext, plaintext2);
+    }
+
+    #[test]
+    fn test_validate_pkcs7_padding() {
+        assert_eq!(
+            validate_pkcs7_padding("ICE ICE BABY\x04\x04\x04\x04".as_bytes().to_vec()),
+            Ok("ICE ICE BABY".as_bytes().to_vec())
+        );
+        assert_eq!(
+            validate_pkcs7_padding("ICE ICE BABY\x05\x05\x05\x05".as_bytes().to_vec()),
+            Err(String::from("invalid padding"))
+        );
+        assert_eq!(
+            validate_pkcs7_padding("ICE ICE BABY\x01\x02\x03\x04".as_bytes().to_vec()),
+            Err(String::from("invalid padding"))
+        );
     }
 }

@@ -9,7 +9,7 @@ use crypto::buffer::{ ReadBuffer, WriteBuffer, BufferResult };
 use queryst::parse;
 
 use utils::{get_file_contents, xor_bytes, bytes_into_blocks, pkcs7_padding, gen_key, vec_contains,
-            bytes_to_string};
+            bytes_to_string, validate_pkcs7_padding};
 
 pub fn index(challenge: u32) {
     if challenge == 9 {
@@ -728,39 +728,6 @@ fn challenge13_decrypt_and_parse(key: Vec<u8>, ciphertext: Vec<u8>) {
     println!("{:?}", object);
 }
 
-fn validate_pkcs7_padding(padded_plaintext: Vec<u8>) -> Result<Vec<u8>, String> {
-    // Determines if padded_plaintext has valid PKCS#7 padding, and strips the padding off
-
-    // Error if plaintext is empty
-    if padded_plaintext.is_empty() {
-        return Err(String::from("plaintext is empty"));
-    }
-
-    // What is the last byte?
-    let length = padded_plaintext.len();
-    let last_byte = padded_plaintext[length - 1];
-
-    // The value of the last byte cannot be bigger than the length of the plaintext
-    if last_byte as usize > padded_plaintext.len() {
-        return Err(String::from("invalid padding, last byte is larger than the length of the plaintext"));
-    }
-
-    // Make sure that the last last_byte bytes all equal last_byte
-    let mut success = true;
-    for i in 0..last_byte {
-        if padded_plaintext[length - 1 - i as usize] != last_byte {
-            success = false;
-        }
-    }
-    if !success {
-        return Err(String::from("invalid padding"));
-    }
-
-    // Strip the padding
-    let plaintext = padded_plaintext[0..(length - last_byte as usize)].to_vec();
-    Ok(plaintext)
-}
-
 fn cbc_bitflipping_encrypt(key: Vec<u8>, iv: Vec<u8>, message: String) -> Vec<u8> {
     // Strip ";" and "=" from the message
     let stripped_message = message.replace(";", "").replace("=", "");
@@ -893,22 +860,6 @@ mod tests {
         assert_eq!(
             profile_for("foo@bar.com&role=admin"),
             String::from("email=foo@bar.comroleadmin&uid=10&role=user")
-        );
-    }
-
-    #[test]
-    fn test_validate_pkcs7_padding() {
-        assert_eq!(
-            validate_pkcs7_padding("ICE ICE BABY\x04\x04\x04\x04".as_bytes().to_vec()),
-            Ok("ICE ICE BABY".as_bytes().to_vec())
-        );
-        assert_eq!(
-            validate_pkcs7_padding("ICE ICE BABY\x05\x05\x05\x05".as_bytes().to_vec()),
-            Err(String::from("invalid padding"))
-        );
-        assert_eq!(
-            validate_pkcs7_padding("ICE ICE BABY\x01\x02\x03\x04".as_bytes().to_vec()),
-            Err(String::from("invalid padding"))
         );
     }
 }
