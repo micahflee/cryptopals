@@ -8,7 +8,8 @@ use crypto::{blockmodes, buffer, aes};
 use crypto::buffer::{ ReadBuffer, WriteBuffer, BufferResult };
 use queryst::parse;
 
-use utils::{get_file_contents, xor_bytes, bytes_into_blocks, pkcs7_padding, gen_key, vec_contains};
+use utils::{get_file_contents, xor_bytes, bytes_into_blocks, pkcs7_padding, gen_key, vec_contains,
+            bytes_to_string};
 
 pub fn index(challenge: u32) {
     if challenge == 9 {
@@ -25,7 +26,7 @@ pub fn index(challenge: u32) {
         challenge14();
     } else if challenge == 15 {
         challenge15();
-    } else if challenge == 15 {
+    } else if challenge == 16 {
         challenge16();
     } else {
         // Run all challanges
@@ -486,10 +487,35 @@ fn challenge16() {
     // https://cryptopals.com/sets/2/challenges/16
     println!("\n{}", "CBC bitflipping attacks".blue().bold());
 
-    // Random key
+    // Random key and IV
     let key = gen_key(16);
+    let iv = gen_key(16);
 
-    // TODO: finish
+    // Prefix is "comment1=cooking%20MCs;userdata=" which is exactly 2 blocks
+
+    // First input block is 16 'A's, second block is "AAAA;admin=true;" but with 1 bit off the ';' and '=' chars
+    // ';' is 0b111011, one bit off, '9' is 0b111001
+    // '=' is 0b111101, one bit off, '?' is 0b111111
+    // both of those are modified by XORing 0b10
+    let message = String::from("AAAAAAAAAAAAAAAAAAAA9admin?true9");
+
+    // Encrypt
+    let mut ciphertext = cbc_bitflipping_encrypt(key.clone(), iv.clone(), message);
+
+    // 1st and 2nd block are the prefix, 3rd block is what I modify, 4th block is where my admin=true is
+    // 4th block should be this:          "AAAA;admin=true;"
+    // Need to XOR these bytes with 0b10  "    ^     ^    ^"
+    // These indexes are: 36, 42, 47
+    ciphertext[36] = ciphertext[36] ^ 2; // 2 == 0b10
+    ciphertext[42] = ciphertext[42] ^ 2;
+    ciphertext[47] = ciphertext[47] ^ 2;
+
+    // Decrypt and see if it worked
+    if cbc_bitflipping_decrypt(key.clone(), iv.clone(), ciphertext) {
+        println!("Success :D");
+    } else {
+        println!("Fail :(");
+    }
 }
 
 fn aes128_ecb_decrypt(ciphertext: Vec<u8>, key: Vec<u8>) -> Vec<u8> {
@@ -786,10 +812,7 @@ fn cbc_bitflipping_decrypt(key: Vec<u8>, iv: Vec<u8>, ciphertext: Vec<u8>) -> bo
     }
 
     // Print the plaintext message
-    match str::from_utf8(&plaintext) {
-        Ok(v) => println!("{}", v),
-        Err(_) => println!("{:?}", &plaintext)
-    };
+    println!("Plaintext: {}", bytes_to_string(&plaintext));
 
     // Search for ";admin=true;"
     let search = ";admin=true;".as_bytes().to_vec();
