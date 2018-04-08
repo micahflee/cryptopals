@@ -55,6 +55,15 @@ pub fn bytes_into_blocks(bytes: Vec<u8>, blocksize: usize) -> Vec<Vec<u8>> {
     blocks
 }
 
+pub fn blocks_into_bytes(blocks: Vec<Vec<u8>>) -> Vec<u8> {
+    // Take a vec of blocks and convert them into a single vec of bytes
+    let mut bytes = vec![];
+    for block in blocks {
+        bytes.append(&mut block.clone());
+    }
+    bytes
+}
+
 pub fn pkcs7_padding(data: &mut Vec<u8>, blocksize: usize) {
     // Add PKCS#7 padding to the end of data until it's length is a multiple of blocksize
 
@@ -282,6 +291,21 @@ mod tests {
         assert_eq!(
             validate_pkcs7_padding("ICE ICE BABY\x01\x02\x03\x04".as_bytes().to_vec()),
             Err(String::from("invalid padding"))
+        );
+    }
+
+    #[test]
+    fn test_blocks_into_bytes() {
+        let blocks = vec![
+            "AAAA".as_bytes().to_vec(),
+            "BBBB".as_bytes().to_vec(),
+            "CCCC".as_bytes().to_vec(),
+            "DD".as_bytes().to_vec()
+        ];
+        let bytes = blocks_into_bytes(blocks);
+        assert_eq!(
+            bytes,
+            "AAAABBBBCCCCDD".as_bytes().to_vec()
         );
     }
 }
