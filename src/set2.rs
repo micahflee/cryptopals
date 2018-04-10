@@ -9,7 +9,7 @@ use crypto::buffer::{ ReadBuffer, WriteBuffer, BufferResult };
 use queryst::parse;
 
 use utils::{get_file_contents, xor_bytes, bytes_into_blocks, pkcs7_padding, gen_key, vec_contains,
-            bytes_to_string, validate_pkcs7_padding};
+            bytes_to_string, validate_pkcs7_padding, aes_cbc_encrypt, aes_cbc_decrypt};
 
 pub fn index(challenge: u32) {
     if challenge == 9 {
@@ -738,45 +738,11 @@ fn cbc_bitflipping_encrypt(key: Vec<u8>, iv: Vec<u8>, message: String) -> Vec<u8
     plaintext.append(&mut stripped_message.as_bytes().to_vec());
     plaintext.append(&mut ";comment2=%20like%20a%20pound%20of%20bacon".as_bytes().to_vec());
 
-    // Encrypt with AES CBC mode
-    let mut encryptor = aes::cbc_encryptor(aes::KeySize::KeySize128, &key, &iv, blockmodes::PkcsPadding);
-    let mut ciphertext = Vec::<u8>::new();
-    let mut read_buffer = buffer::RefReadBuffer::new(plaintext.as_slice());
-    let mut buffer = [0; 4096];
-    let mut write_buffer = buffer::RefWriteBuffer::new(&mut buffer);
-    loop {
-        let result = match encryptor.encrypt(&mut read_buffer, &mut write_buffer, true) {
-            Ok(v) => v,
-            Err(_) => panic!("Error encrypting")
-        };
-        ciphertext.extend(write_buffer.take_read_buffer().take_remaining().iter().map(|&i| i));
-        match result {
-            BufferResult::BufferUnderflow => break,
-            BufferResult::BufferOverflow => { }
-        }
-    }
-
-    ciphertext
+    aes_cbc_encrypt(key, iv, plaintext).unwrap()
 }
 
 fn cbc_bitflipping_decrypt(key: Vec<u8>, iv: Vec<u8>, ciphertext: Vec<u8>) -> bool {
-    // Decrypt with AES CBC mode
-    let mut decryptor = aes::cbc_decryptor(aes::KeySize::KeySize128, &key, &iv, blockmodes::PkcsPadding);
-    let mut plaintext = Vec::<u8>::new();
-    let mut read_buffer = buffer::RefReadBuffer::new(ciphertext.as_slice());
-    let mut buffer = [0; 4096];
-    let mut write_buffer = buffer::RefWriteBuffer::new(&mut buffer);
-    loop {
-        let result = match decryptor.decrypt(&mut read_buffer, &mut write_buffer, true) {
-            Ok(v) => v,
-            Err(_) => panic!("Error encrypting")
-        };
-        plaintext.extend(write_buffer.take_read_buffer().take_remaining().iter().map(|&i| i));
-        match result {
-            BufferResult::BufferUnderflow => break,
-            BufferResult::BufferOverflow => { }
-        }
-    }
+    let plaintext = aes_cbc_decrypt(key, iv, ciphertext).unwrap();
 
     // Print the plaintext message
     println!("Plaintext: {}", bytes_to_string(&plaintext));
