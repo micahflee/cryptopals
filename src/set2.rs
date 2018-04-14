@@ -744,11 +744,11 @@ fn cbc_bitflipping_encrypt(key: Vec<u8>, iv: Vec<u8>, message: String) -> Vec<u8
     plaintext.append(&mut stripped_message.as_bytes().to_vec());
     plaintext.append(&mut ";comment2=%20like%20a%20pound%20of%20bacon".as_bytes().to_vec());
 
-    aes_cbc_encrypt(key, iv, plaintext).unwrap()
+    aes_cbc_encrypt(&key, &iv, &plaintext).unwrap()
 }
 
 fn cbc_bitflipping_decrypt(key: Vec<u8>, iv: Vec<u8>, ciphertext: Vec<u8>) -> bool {
-    let plaintext = aes_cbc_decrypt(key, iv, ciphertext).unwrap();
+    let plaintext = aes_cbc_decrypt(&key, &iv, &ciphertext).unwrap();
 
     // Print the plaintext message
     println!("Plaintext: {}", bytes_to_string(&plaintext));

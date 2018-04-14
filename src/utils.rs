@@ -125,10 +125,10 @@ pub fn bytes_to_string(bytes: &[u8]) -> String {
     s
 }
 
-pub fn aes_cbc_encrypt(key: Vec<u8>, iv: Vec<u8>, plaintext: Vec<u8>) -> Result<Vec<u8>, String> {
+pub fn aes_cbc_encrypt(key: &[u8], iv: &[u8], plaintext: &[u8]) -> Result<Vec<u8>, String> {
     let mut encryptor = aes::cbc_encryptor(aes::KeySize::KeySize128, &key, &iv, blockmodes::PkcsPadding);
     let mut ciphertext = Vec::<u8>::new();
-    let mut read_buffer = buffer::RefReadBuffer::new(plaintext.as_slice());
+    let mut read_buffer = buffer::RefReadBuffer::new(plaintext);
     let mut buffer = [0; 4096];
     let mut write_buffer = buffer::RefWriteBuffer::new(&mut buffer);
 
@@ -147,10 +147,10 @@ pub fn aes_cbc_encrypt(key: Vec<u8>, iv: Vec<u8>, plaintext: Vec<u8>) -> Result<
     Ok(ciphertext)
 }
 
-pub fn aes_cbc_decrypt(key: Vec<u8>, iv: Vec<u8>, ciphertext: Vec<u8>) -> Result<Vec<u8>, SymmetricCipherError> {
+pub fn aes_cbc_decrypt(key: &[u8], iv: &[u8], ciphertext: &[u8]) -> Result<Vec<u8>, SymmetricCipherError> {
     let mut decryptor = aes::cbc_decryptor(aes::KeySize::KeySize128, &key, &iv, blockmodes::PkcsPadding);
     let mut plaintext = Vec::<u8>::new();
-    let mut read_buffer = buffer::RefReadBuffer::new(ciphertext.as_slice());
+    let mut read_buffer = buffer::RefReadBuffer::new(ciphertext);
     let mut buffer = [0; 4096];
     let mut write_buffer = buffer::RefWriteBuffer::new(&mut buffer);
 
@@ -282,8 +282,8 @@ mod tests {
         let key = gen_random_bytes(&mut rng, 16);
         let iv = gen_random_bytes(&mut rng, 16);
 
-        let ciphertext = aes_cbc_encrypt(key.clone(), iv.clone(), plaintext.clone()).unwrap();
-        let plaintext2 = aes_cbc_decrypt(key, iv, ciphertext).unwrap();
+        let ciphertext = aes_cbc_encrypt(&key, &iv, &plaintext).unwrap();
+        let plaintext2 = aes_cbc_decrypt(&key, &iv, &ciphertext).unwrap();
 
         assert_eq!(plaintext, plaintext2);
     }

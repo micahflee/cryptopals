@@ -118,7 +118,7 @@ fn ch17_func1(key: Vec<u8>, iv: Vec<u8>) -> Vec<u8> {
     }
 
     // Encrypt
-    aes_cbc_encrypt(key, iv, message).unwrap()
+    aes_cbc_encrypt(&key, &iv, &message).unwrap()
 }
 
 fn ch17_func2(key: Vec<u8>, iv: Vec<u8>, ciphertext: Vec<u8>) -> bool {
@@ -126,7 +126,7 @@ fn ch17_func2(key: Vec<u8>, iv: Vec<u8>, ciphertext: Vec<u8>) -> bool {
     println!("debug1");
 
     // Decrypt
-    match aes_cbc_decrypt(key, iv, ciphertext) {
+    match aes_cbc_decrypt(&key, &iv, &ciphertext) {
         Ok(v) => {
             // For some reason the decrypt function is saying it's valid padding to end a block
             // with 0, but not have a following block of padding. I think this is invalid, so
