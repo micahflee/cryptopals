@@ -8,7 +8,7 @@ use crypto::{blockmodes, buffer, aes};
 use crypto::buffer::{ ReadBuffer, WriteBuffer, BufferResult };
 use queryst::parse;
 
-use utils::{get_file_contents, xor_bytes, bytes_into_blocks, pkcs7_padding, gen_key, vec_contains,
+use utils::{get_file_contents, xor_bytes, bytes_into_blocks, pkcs7_padding, gen_random_bytes, vec_contains,
             bytes_to_string, validate_pkcs7_padding, aes_cbc_encrypt, aes_cbc_decrypt};
 
 pub fn index(challenge: u32) {
@@ -114,7 +114,8 @@ fn challenge12() {
     println!("\n{}", "Byte-at-a-time ECB decryption (Simple)".blue().bold());
 
     // Here's the secret key that I don't know
-    let key = gen_key(16);
+    let mut rng = EntropyRng::new();
+    let key = gen_random_bytes(&mut rng, 16);
 
     // Discover the block size
     let mut message = vec!['A' as u8];
@@ -279,7 +280,8 @@ fn challenge13() {
     println!("\n{}", "ECB cut-and-paste".blue().bold());
 
     // Generate a random key
-    let key = gen_key(16);
+    let mut rng = EntropyRng::new();
+    let key = gen_random_bytes(&mut rng, 16);
 
     // Let's see what profile_for stings look like
     // profile_for("test") returns "email=test&uid=10&role=user"
@@ -313,12 +315,13 @@ fn challenge14() {
     // https://cryptopals.com/sets/2/challenges/12
     println!("\n{}", "Byte-at-a-time ECB decryption (Harder)".blue().bold());
 
-    let key = gen_key(16);
+    let mut rng = EntropyRng::new();
+    let key = gen_random_bytes(&mut rng, 16);
     let blocksize = 16;
 
     // Generate a random prefix between 1 and 16 bytes long
-    let mut rng = EntropyRng::new();
-    let prefix = gen_key(rng.gen_range(1, 17));
+    let length = rng.gen_range(1, 17);
+    let prefix = gen_random_bytes(&mut rng, length);
 
     // I need to use the oracle to detect how many bytes we need to prepend to our own message
     // (called message_prefix, not to be confused with prefix), in order to cause the prefix to
@@ -488,8 +491,9 @@ fn challenge16() {
     println!("\n{}", "CBC bitflipping attacks".blue().bold());
 
     // Random key and IV
-    let key = gen_key(16);
-    let iv = gen_key(16);
+    let mut rng = EntropyRng::new();
+    let key = gen_random_bytes(&mut rng, 16);
+    let iv = gen_random_bytes(&mut rng, 16);
 
     // Prefix is "comment1=cooking%20MCs;userdata=" which is exactly 2 blocks
 
@@ -546,14 +550,16 @@ fn encryption_oracle(input: Vec<u8>) -> Vec<u8> {
     let mut plaintext = vec![];
 
     // Add 5 to 10 bytes before and after the input
-    let mut before = gen_key(rng.gen_range(5, 10));
-    let mut after = gen_key(rng.gen_range(5, 10));
+    let length = rng.gen_range(5, 10);
+    let mut before = gen_random_bytes(&mut rng, length);
+    let length = rng.gen_range(5, 10);
+    let mut after = gen_random_bytes(&mut rng, length);
     plaintext.append(&mut before);
     plaintext.append(&mut input.clone());
     plaintext.append(&mut after);
 
     // Make a random key
-    let key = gen_key(16);
+    let key = gen_random_bytes(&mut rng, 16);
 
     // Prepare the encryptor, either ECB or CBC
     let mut encryptor;
@@ -565,7 +571,7 @@ fn encryption_oracle(input: Vec<u8>) -> Vec<u8> {
     } else {
         // CBC
         println!("[shh, I'm using CBC mode]");
-        let iv = gen_key(16);
+        let iv = gen_random_bytes(&mut rng, 16);
         encryptor = aes::cbc_encryptor(aes::KeySize::KeySize128, &key, &iv, blockmodes::PkcsPadding);
     }
 
@@ -775,7 +781,8 @@ mod tests {
         let plaintext = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".as_bytes().to_vec();
 
         // Encrypt with ECB
-        let key = gen_key(16);
+        let mut rng = EntropyRng::new();
+        let key = gen_random_bytes(&mut rng, 16);
         let mut encryptor = aes::ecb_encryptor(aes::KeySize::KeySize128, &key, blockmodes::PkcsPadding);
         let mut ecb_ciphertext = Vec::<u8>::new();
         let mut read_buffer = buffer::RefReadBuffer::new(plaintext.as_slice());
@@ -794,8 +801,8 @@ mod tests {
         }
 
         // Encrypt with CBC
-        let key = gen_key(16);
-        let iv = gen_key(16);
+        let key = gen_random_bytes(&mut rng, 16);
+        let iv = gen_random_bytes(&mut rng, 16);
         let mut encryptor = aes::cbc_encryptor(aes::KeySize::KeySize128, &key, &iv, blockmodes::PkcsPadding);
         let mut cbc_ciphertext = Vec::<u8>::new();
         let mut read_buffer = buffer::RefReadBuffer::new(plaintext.as_slice());

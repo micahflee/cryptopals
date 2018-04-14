@@ -80,9 +80,8 @@ pub fn pkcs7_padding(data: &mut Vec<u8>, blocksize: usize) {
     }
 }
 
-pub fn gen_key(length: usize) -> Vec<u8> {
+pub fn gen_random_bytes(rng: &mut EntropyRng, length: usize) -> Vec<u8> {
     // Generate a vec of random bytes of length length
-    let mut rng = EntropyRng::new();
     let mut key = vec![];
     for _ in 0..length {
         key.push(rng.gen::<u8>());
@@ -250,9 +249,10 @@ mod tests {
     }
 
     #[test]
-    fn test_gen_key() {
-        let key1 = gen_key(16);
-        let key2 = gen_key(16);
+    fn test_gen_random_bytes() {
+        let mut rng = EntropyRng::new();
+        let key1 = gen_random_bytes(&mut rng, 16);
+        let key2 = gen_random_bytes(&mut rng, 16);
         assert_ne!(key1, key2);
     }
 
@@ -278,8 +278,9 @@ mod tests {
     #[test]
     fn test_aes_cbc() {
         let plaintext = "It uses hand-drawn stick figure graphics and writing characterized by surreal humor, word play, parody and references to popular culture. In KoL, a player's character fights monsters for experience, and acquiring meat (the game's currency), and/or items, through a turn-based system. Players may also interact with each other through player versus player competition, participate in the in-game economy by trading goods and services, organize their characters into clans, work together to complete clan dungeons, and speak to each other in many different chat channels.".as_bytes().to_vec();
-        let key = gen_key(16);
-        let iv = gen_key(16);
+        let mut rng = EntropyRng::new();
+        let key = gen_random_bytes(&mut rng, 16);
+        let iv = gen_random_bytes(&mut rng, 16);
 
         let ciphertext = aes_cbc_encrypt(key.clone(), iv.clone(), plaintext.clone()).unwrap();
         let plaintext2 = aes_cbc_decrypt(key, iv, ciphertext).unwrap();

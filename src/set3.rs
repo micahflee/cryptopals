@@ -2,7 +2,8 @@ extern crate base64;
 
 use colored::Colorize;
 
-use utils::{gen_key, aes_cbc_encrypt, aes_cbc_decrypt, bytes_to_string,  bytes_into_blocks};
+use utils::{gen_random_bytes, aes_cbc_encrypt, aes_cbc_decrypt, bytes_to_string,  bytes_into_blocks};
+use rand::EntropyRng;
 
 pub fn index(challenge: u32) {
     if challenge == 17 {
@@ -38,8 +39,9 @@ fn challenge17() {
     // https://cryptopals.com/sets/3/challenges/17
     println!("\n{}", "Challenge 17: The CBC padding oracle".blue().bold());
 
-    let key = gen_key(16);
-    let iv = gen_key(16);
+    let mut rng = EntropyRng::new();
+    let key = gen_random_bytes(&mut rng, 16);
+    let iv = gen_random_bytes(&mut rng, 16);
 
     // Give me some ciphertext
     let ciphertext = ch17_func1(key.clone(), iv.clone());
