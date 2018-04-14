@@ -198,7 +198,7 @@ fn challenge6() {
     println!("== Assuming key length is {}, with shortest hamming distance {} ==", best_keysize, best_dist);
 
     // Break ciphertext into keysize blocks
-    let blocks = bytes_into_blocks(data_bytes.clone(), best_keysize);
+    let blocks = bytes_into_blocks(&data_bytes, best_keysize);
     println!("Split ciphertext into {} {}-byte blocks", blocks.len(), best_keysize);
 
     // Build transposed blocks, one with all the 1st bytes of the block, one with the 2nd bytes, etc.
@@ -273,7 +273,7 @@ fn challenge8() {
         let ciphertext = hex::decode(hex_string).unwrap();
 
         // Split ciphertext into blocks of blocksize 16
-        let mut blocks = bytes_into_blocks(ciphertext, 16);
+        let mut blocks = bytes_into_blocks(&ciphertext, 16);
 
         // Are any of the blocks exactly the same?
         blocks.sort();

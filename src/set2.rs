@@ -60,7 +60,7 @@ fn challenge10() {
     let ciphertext_base64 = get_file_contents("data/set2/10.txt").unwrap().replace("\n", "");
     let ciphertext = base64::decode(&ciphertext_base64).unwrap();
 
-    let blocks = bytes_into_blocks(ciphertext, 16);
+    let blocks = bytes_into_blocks(&ciphertext, 16);
 
     let mut plaintext = vec![];
 
@@ -94,7 +94,7 @@ fn challenge11() {
     // Let's try 10 times
     for _i in 0..10 {
         let ciphertext = encryption_oracle("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".as_bytes().to_vec());
-        let mut blocks = bytes_into_blocks(ciphertext, 16);
+        let mut blocks = bytes_into_blocks(&ciphertext, 16);
 
         // Are any of the blocks exactly the same?
         blocks.sort();
@@ -293,9 +293,9 @@ fn challenge13() {
     let ciphertext1 = challenge13_encrypt(key.clone(), &profile_for("AAAAAAAAAAAAA"));
     let ciphertext2 = challenge13_encrypt(key.clone(), &profile_for("AAAAAAAAAAadmin"));
     let ciphertext3 = challenge13_encrypt(key.clone(), &profile_for("AAAAAAAAAAAAAAAAAAAAAAAAA"));
-    let mut ciphertext1_blocks = bytes_into_blocks(ciphertext1, 16);
-    let mut ciphertext2_blocks = bytes_into_blocks(ciphertext2, 16);
-    let mut ciphertext3_blocks = bytes_into_blocks(ciphertext3, 16);
+    let mut ciphertext1_blocks = bytes_into_blocks(&ciphertext1, 16);
+    let mut ciphertext2_blocks = bytes_into_blocks(&ciphertext2, 16);
+    let mut ciphertext3_blocks = bytes_into_blocks(&ciphertext3, 16);
     println!("ciphertext1_blocks length: {}", ciphertext1_blocks.len());
     println!("ciphertext2_blocks length: {}", ciphertext2_blocks.len());
     println!("ciphertext3_blocks length: {}", ciphertext3_blocks.len());
@@ -653,7 +653,7 @@ fn encryption_oracle3(key: Vec<u8>, prefix: Vec<u8>, message: Vec<u8>) -> Vec<u8
 fn is_ciphertext_ecb(ciphertext: Vec<u8>, blocksize: usize) -> bool {
     // Detect if a block of ciphertext is ECB or not. Note that you must
     // have encrypted at least two identical blocks for this to work.
-    let mut blocks = bytes_into_blocks(ciphertext, blocksize);
+    let mut blocks = bytes_into_blocks(&ciphertext, blocksize);
     blocks.sort();
     let len1 = blocks.len();
     blocks.dedup();

@@ -35,7 +35,7 @@ pub fn get_file_contents(filename: &str) -> Result<String, String> {
     Ok(s)
 }
 
-pub fn bytes_into_blocks(bytes: Vec<u8>, blocksize: usize) -> Vec<Vec<u8>> {
+pub fn bytes_into_blocks(bytes: &[u8], blocksize: usize) -> Vec<Vec<u8>> {
     // Split bytes into blocks of length blocksize, and return a vec of blocks
     // Break ciphertext into keysize blocks
     let mut blocks = vec![];
@@ -229,7 +229,7 @@ mod tests {
     #[test]
     fn test_bytes_into_blocks() {
         let bytes = "AAAABBBBCCCCDD".as_bytes().to_vec();
-        let blocks = bytes_into_blocks(bytes, 4);
+        let blocks = bytes_into_blocks(&bytes, 4);
         assert_eq!(
             blocks,
             vec![

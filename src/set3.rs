@@ -46,7 +46,7 @@ fn challenge17() {
     // Give me some ciphertext
     let ciphertext = ch17_func1(key.clone(), iv.clone());
     let block_size = 16;
-    let blocks = bytes_into_blocks(ciphertext, block_size);
+    let blocks = bytes_into_blocks(&ciphertext, block_size);
 
     // The final plaintext, that we'll fill up a block at a time
     //let mut final_plaintext: Vec<u8> = vec![];
@@ -113,7 +113,7 @@ fn ch17_func1(key: Vec<u8>, iv: Vec<u8>) -> Vec<u8> {
 
     // Print the message, in block
     println!("Message:");
-    for block in bytes_into_blocks(message.clone(), 16) {
+    for block in bytes_into_blocks(&message, 16) {
         println!("=> \"{}\"", bytes_to_string(&block));
     }
 
