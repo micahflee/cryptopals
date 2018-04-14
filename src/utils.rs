@@ -6,6 +6,7 @@ use std::path::Path;
 use rand::{Rng, EntropyRng};
 use crypto::{blockmodes, buffer, aes};
 use crypto::buffer::{ ReadBuffer, WriteBuffer, BufferResult };
+use crypto::symmetriccipher::SymmetricCipherError;
 
 pub fn xor_bytes(bytes1: Vec<u8>, bytes2: Vec<u8>) -> Vec<u8> {
     // The returned vector will have the length of bytes1
@@ -147,7 +148,7 @@ pub fn aes_cbc_encrypt(key: Vec<u8>, iv: Vec<u8>, plaintext: Vec<u8>) -> Result<
     Ok(ciphertext)
 }
 
-pub fn aes_cbc_decrypt(key: Vec<u8>, iv: Vec<u8>, ciphertext: Vec<u8>) -> Result<Vec<u8>, String> {
+pub fn aes_cbc_decrypt(key: Vec<u8>, iv: Vec<u8>, ciphertext: Vec<u8>) -> Result<Vec<u8>, SymmetricCipherError> {
     let mut decryptor = aes::cbc_decryptor(aes::KeySize::KeySize128, &key, &iv, blockmodes::PkcsPadding);
     let mut plaintext = Vec::<u8>::new();
     let mut read_buffer = buffer::RefReadBuffer::new(ciphertext.as_slice());
@@ -155,9 +156,12 @@ pub fn aes_cbc_decrypt(key: Vec<u8>, iv: Vec<u8>, ciphertext: Vec<u8>) -> Result
     let mut write_buffer = buffer::RefWriteBuffer::new(&mut buffer);
 
     loop {
+        // TODO: I'm running into a problem where when I send junk ciphertext into this function,
+        // sometimes decryptor.decrypt panics and it never should:
+        // thread 'main' panicked at 'attempt to subtract with overflow', /home/user/.cargo/registry/src/github.com-1ecc6299db9ec823/rust-crypto-0.2.36/src/buffer.rs:140:45
         let result = match decryptor.decrypt(&mut read_buffer, &mut write_buffer, true) {
             Ok(v) => v,
-            Err(_) => return Err(String::from("Error decrypting"))
+            Err(v) => return Err(v)
         };
         plaintext.extend(write_buffer.take_read_buffer().take_remaining().iter().map(|&i| i));
 
@@ -184,6 +188,11 @@ pub fn validate_pkcs7_padding(padded_plaintext: Vec<u8>) -> Result<Vec<u8>, Stri
     // The value of the last byte cannot be bigger than the length of the plaintext
     if last_byte as usize > padded_plaintext.len() {
         return Err(String::from("invalid padding, last byte is larger than the length of the plaintext"));
+    }
+
+    // And it cannot be 0
+    if last_byte == 0 {
+        return Err(String::from("invalid padding, last byte is 0"))
     }
 
     // Make sure that the last last_byte bytes all equal last_byte
@@ -291,6 +300,10 @@ mod tests {
         assert_eq!(
             validate_pkcs7_padding("ICE ICE BABY\x01\x02\x03\x04".as_bytes().to_vec()),
             Err(String::from("invalid padding"))
+        );
+        assert_eq!(
+            validate_pkcs7_padding("AAAAAAAAAAAAAAA\x00".as_bytes().to_vec()),
+            Err(String::from("invalid padding, last byte is 0"))
         );
     }
 
