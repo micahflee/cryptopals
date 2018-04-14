@@ -44,7 +44,7 @@ fn challenge17() {
     let iv = gen_random_bytes(&mut rng, 16);
 
     // Give me some ciphertext
-    let ciphertext = ch17_func1(key.clone(), iv.clone());
+    let ciphertext = ch17_func1(&key, &iv);
     let block_size = 16;
     let blocks = bytes_into_blocks(&ciphertext, block_size);
 
@@ -74,10 +74,10 @@ fn challenge17() {
                 //                          modify this byte ^ (minus char_i)
                 let index = (block_size - char_i) + (block_size * (block_i - 1));
                 malicious_ciphertext[index] = guess;
-                println!("guess={}, ciphertext={:?}", guess, malicious_ciphertext.clone());
+                println!("guess={}, ciphertext={:?}", guess, &malicious_ciphertext);
 
                 // Valid padding?
-                if ch17_func2(key.clone(), iv.clone(), malicious_ciphertext.clone()) {
+                if ch17_func2(&key, &iv, &malicious_ciphertext) {
                     // Plaintext byte is guess ^ (padding byte)
                     let plaintext_byte = guess ^ char_i as u8;
                     println!("guess={}, plaintext byte must be {} ({}).", guess, plaintext_byte, bytes_to_string(&[plaintext_byte]));
@@ -89,7 +89,7 @@ fn challenge17() {
     }
 }
 
-fn ch17_func1(key: Vec<u8>, iv: Vec<u8>) -> Vec<u8> {
+fn ch17_func1(key: &[u8], iv: &[u8]) -> Vec<u8> {
     // Take a random string, base64 decode it, add padding, encrypt it to key (using iv), and return
     // the ciphertext
 
@@ -121,7 +121,7 @@ fn ch17_func1(key: Vec<u8>, iv: Vec<u8>) -> Vec<u8> {
     aes_cbc_encrypt(&key, &iv, &message).unwrap()
 }
 
-fn ch17_func2(key: Vec<u8>, iv: Vec<u8>, ciphertext: Vec<u8>) -> bool {
+fn ch17_func2(key: &[u8], iv: &[u8], ciphertext: &[u8]) -> bool {
     // Decrypt ciphertext, return where or not the plaintext is properly padded
     println!("debug1");
 
